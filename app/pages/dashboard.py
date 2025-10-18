@@ -44,7 +44,7 @@ class DashboardState(rx.State):
                 "id": p.id,
                 "name": f"{p.first_name} {p.last_name}",
                 "dni": p.dni,
-                "created_at": p.created_at.strftime("%d/%m/%Y"),
+                "created_at": p.created_at.strftime("%Y-%m-%d"),
             }
             for p in recent
         ]

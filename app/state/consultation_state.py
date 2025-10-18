@@ -57,7 +57,7 @@ class ConsultationState(rx.State):
             {
                 "id": c.id,
                 "patient_id": c.patient_id,
-                "consultation_date": c.consultation_date.strftime("%d/%m/%Y %H:%M"),
+                "consultation_date": c.consultation_date.strftime("%Y-%m-%d %H:%M"),
                 "reason": c.reason,
                 "symptoms": c.symptoms or "",
                 "diagnosis": c.diagnosis or "",
@@ -70,7 +70,7 @@ class ConsultationState(rx.State):
                 "bmi": str(c.bmi) if c.bmi else "",
                 "bmi_category": c.bmi_category or "",
                 "has_vital_signs": c.has_vital_signs,
-                "next_visit": c.next_visit.strftime("%d/%m/%Y") if c.next_visit else "",
+                "next_visit": c.next_visit.strftime("%Y-%m-%d") if c.next_visit else "",
             }
             for c in consultations
         ]

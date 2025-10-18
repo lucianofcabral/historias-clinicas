@@ -6,6 +6,7 @@ from typing import Optional
 from sqlmodel import Session, or_, select
 
 from app.models import Patient
+from app.utils.text_utils import normalize_search_term
 from app.utils.validators import (
     normalize_dni,
     normalize_phone,
@@ -130,8 +131,7 @@ class PatientService:
     def search_patients(session: Session, search_term: str) -> list[Patient]:
         """
         Busca pacientes por nombre, apellido o DNI.
-        Normaliza el DNI antes de buscar para encontrar coincidencias
-        incluso si se busca con puntos o guiones.
+        Normaliza el DNI y remueve acentos para búsquedas más flexibles.
 
         Args:
             session: Sesión de base de datos
@@ -140,7 +140,9 @@ class PatientService:
         Returns:
             Lista de pacientes que coinciden
         """
-        search_pattern = f"%{search_term}%"
+        # Normalizar término de búsqueda (sin acentos, minúsculas)
+        normalized_term = normalize_search_term(search_term)
+        search_pattern = f"%{normalized_term}%"
 
         # También buscar por DNI normalizado
         normalized_dni = normalize_dni(search_term)
@@ -150,10 +152,12 @@ class PatientService:
             select(Patient)
             .where(
                 or_(
+                    # Comparar nombres/apellidos sin acentos
                     Patient.first_name.ilike(search_pattern),
                     Patient.last_name.ilike(search_pattern),
+                    # Buscar por DNI
                     Patient.dni.ilike(search_pattern),
-                    Patient.dni.ilike(dni_pattern),  # Buscar por DNI normalizado
+                    Patient.dni.ilike(dni_pattern),
                 )
             )
             .where(Patient.is_active == True)  # noqa: E712
