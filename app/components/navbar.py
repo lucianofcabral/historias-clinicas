@@ -12,7 +12,7 @@ def navbar() -> rx.Component:
         rx.hstack(
             # Logo y nombre
             rx.hstack(
-                rx.icon("heart_pulse", size=28, color=COLORS["primary"]),
+                rx.icon("heart-pulse", size=28, color=COLORS["primary"]),
                 rx.heading(APP_NAME, size="6", color=COLORS["text"]),
                 spacing="3",
             ),
@@ -20,7 +20,7 @@ def navbar() -> rx.Component:
             rx.hstack(
                 rx.link(
                     rx.button(
-                        rx.icon("layout_dashboard", size=18),
+                        rx.icon("layout-dashboard", size=18),
                         "Dashboard",
                         variant="ghost",
                         color_scheme="gray",
@@ -36,12 +36,21 @@ def navbar() -> rx.Component:
                     ),
                     href="/patients",
                 ),
+                rx.link(
+                    rx.button(
+                        rx.icon("file-text", size=18),
+                        "Estudios",
+                        variant="ghost",
+                        color_scheme="gray",
+                    ),
+                    href="/studies",
+                ),
                 spacing="2",
             ),
             # Usuario y logout
             rx.hstack(
                 rx.button(
-                    rx.icon("log_out", size=18),
+                    rx.icon("log-out", size=18),
                     "Cerrar Sesión",
                     on_click=AuthState.logout,
                     variant="outline",

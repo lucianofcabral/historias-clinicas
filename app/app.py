@@ -5,6 +5,7 @@ import reflex as rx
 from app.config import COLORS
 from app.pages.dashboard import dashboard_page
 from app.pages.login import login_page
+from app.pages.medical_studies import medical_studies_page
 
 # Crear la aplicación
 app = rx.App(
@@ -26,6 +27,12 @@ app.add_page(
     dashboard_page,
     route="/dashboard",
     title="Dashboard - Historias Clínicas",
+)
+
+app.add_page(
+    medical_studies_page,
+    route="/studies",
+    title="Estudios Médicos - Historias Clínicas",
 )
 
 
