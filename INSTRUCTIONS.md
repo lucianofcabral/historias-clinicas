@@ -64,6 +64,27 @@ uv --version
 - **Nombres:** snake_case para tablas y columnas
 - **Índices:** Crear en campos de búsqueda frecuente (dni, nombre)
 
+### Formatos y Localización (Argentina) 🇦🇷
+- **Fechas:** SIEMPRE formato ISO 8601 `YYYY-MM-DD` (ej: `2025-10-18`)
+  - En base de datos: tipo `date` o `datetime`
+  - En inputs HTML: `type="date"` (estándar ISO)
+  - En displays: mantener `YYYY-MM-DD` para consistencia
+  - NO usar formatos DD/MM/YYYY o MM/DD/YYYY
+- **Números:**
+  - Separador decimal: coma `,` (ej: `36,5°C`, `1,75 m`)
+  - Separador de miles: punto `.` (ej: `1.000`, `10.500`)
+  - En código Python: usar `locale.setlocale(locale.LC_ALL, 'es_AR.UTF-8')`
+  - Para formateo: `f"{numero:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")`
+- **DNI:** Formato argentino sin puntos ni guiones (ej: `12345678`)
+  - Validación: 7-8 dígitos numéricos
+  - Almacenar como string para preservar ceros iniciales
+- **Teléfonos:** Formato flexible argentino
+  - Con código de área: `(011) 1234-5678` o `011-1234-5678`
+  - Celular: `15-1234-5678` o `011-15-1234-5678`
+- **Moneda:** Pesos argentinos
+  - Símbolo: `$` o `ARS`
+  - Formato: `$ 1.234,56`
+
 ---
 
 ## 🏗️ Estructura del Proyecto

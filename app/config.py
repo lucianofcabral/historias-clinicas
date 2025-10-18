@@ -15,7 +15,8 @@ STUDIES_PATH = BASE_DIR / "studies"  # Archivos de estudios médicos
 
 # Base de Datos
 DATABASE_URL = os.getenv(
-    "DATABASE_URL", "postgresql://user:password@localhost:5432/medical_records_db"
+    "DATABASE_URL",
+    "postgresql://user:password@localhost:5432/medical_records_db",
 )
 
 # Autenticación
@@ -30,7 +31,11 @@ DEBUG = os.getenv("DEBUG", "True").lower() in ("true", "1", "yes")
 ENVIRONMENT = os.getenv("ENVIRONMENT", "development")
 
 # Backups
-BACKUP_ENABLED = os.getenv("BACKUP_ENABLED", "True").lower() in ("true", "1", "yes")
+BACKUP_ENABLED = os.getenv("BACKUP_ENABLED", "True").lower() in (
+    "true",
+    "1",
+    "yes",
+)
 BACKUP_FREQUENCY_DAYS = int(os.getenv("BACKUP_FREQUENCY_DAYS", "7"))
 
 # Constantes de la aplicación
@@ -62,6 +67,43 @@ if not ADMIN_PASSWORD_HASH and ENVIRONMENT == "production":
         'Genera uno con: uv run python -c "from passlib.context import CryptContext; '
         "print(CryptContext(schemes=['argon2']).hash('tu_password'))\""
     )
+
+# Formatos y Localización Argentina 🇦🇷
+LOCALE = "es_AR.UTF-8"
+DATE_FORMAT = "%Y-%m-%d"  # ISO 8601: YYYY-MM-DD
+DATETIME_FORMAT = "%Y-%m-%d %H:%M:%S"
+
+
+def format_ar_number(number: float, decimals: int = 2) -> str:
+    """
+    Formatea números con estándar argentino.
+
+    Args:
+        number: Número a formatear
+        decimals: Cantidad de decimales (default: 2)
+
+    Returns:
+        String formateado con separador de miles (.) y decimal (,)
+        Ejemplo: 1234.56 -> "1.234,56"
+    """
+    formatted = f"{number:,.{decimals}f}"
+    # Intercambiar separadores: coma por punto y viceversa
+    return formatted.replace(",", "TEMP").replace(".", ",").replace("TEMP", ".")
+
+
+def format_ar_currency(amount: float) -> str:
+    """
+    Formatea moneda en pesos argentinos.
+
+    Args:
+        amount: Monto a formatear
+
+    Returns:
+        String formateado con símbolo $ y formato argentino
+        Ejemplo: 1234.56 -> "$ 1.234,56"
+    """
+    return f"$ {format_ar_number(amount, 2)}"
+
 
 # Crear carpeta de backups si no existe
 BACKUP_PATH.mkdir(parents=True, exist_ok=True)
