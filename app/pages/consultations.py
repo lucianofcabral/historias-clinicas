@@ -470,10 +470,16 @@ def consultations_page() -> rx.Component:
                 # Filtros
                 rx.hstack(
                     rx.input(
-                        placeholder="🔍 Buscar consultas...",
+                        placeholder="🔍 Buscar en motivo, síntomas, diagnóstico, tratamiento...",
                         value=ConsultationState.search_query,
-                        on_change=ConsultationState.set_search_query,
-                        width="300px",
+                        on_change=ConsultationState.handle_search_change,
+                        width="400px",
+                    ),
+                    rx.button(
+                        "Limpiar",
+                        on_click=lambda: ConsultationState.handle_search_change(""),
+                        variant="outline",
+                        color_scheme="gray",
                     ),
                     spacing="3",
                     margin_bottom="1.5rem",

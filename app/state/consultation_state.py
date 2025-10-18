@@ -43,13 +43,20 @@ class ConsultationState(rx.State):
     success_message: str = ""
 
     def load_consultations(self):
-        """Carga todas las consultas"""
+        """Carga todas las consultas o filtra por búsqueda/paciente"""
         session = next(get_session())
 
+        # Prioridad 1: Filtrar por paciente específico
         if self.selected_patient_id > 0:
             consultations = ConsultationService.get_consultations_by_patient(
                 session, self.selected_patient_id
             )
+        # Prioridad 2: Buscar por término de búsqueda
+        elif self.search_query.strip():
+            consultations = ConsultationService.search_consultations(
+                session, self.search_query, limit=50
+            )
+        # Por defecto: Todas las consultas (limitadas)
         else:
             consultations = ConsultationService.get_all_consultations(session, limit=50)
 
@@ -88,6 +95,14 @@ class ConsultationState(rx.State):
             }
             for p in patients
         ]
+
+    def handle_search_change(self, value: str):
+        """Maneja el cambio en el campo de búsqueda y recarga las consultas"""
+        self.search_query = value
+        # Resetear filtro por paciente al buscar
+        if value.strip():
+            self.selected_patient_id = 0
+        self.load_consultations()
 
     def open_new_consultation_modal(self):
         """Abre el modal de nueva consulta"""
