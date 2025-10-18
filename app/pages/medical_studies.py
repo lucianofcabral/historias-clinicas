@@ -2,6 +2,7 @@
 
 import reflex as rx
 
+from app.components.navbar import navbar
 from app.config import COLORS
 from app.models import StudyType
 from app.state.medical_study_state import MedicalStudyState
@@ -334,112 +335,112 @@ def new_study_modal() -> rx.Component:
 def medical_studies_page() -> rx.Component:
     """Página principal de estudios médicos"""
     return rx.box(
-        new_study_modal(),
-        rx.vstack(
-            # Header
-            rx.heading("Estudios Médicos", size="8"),
-            rx.text(
-                "Gestión de análisis y estudios complementarios",
-                size="3",
-                color=COLORS["text_secondary"],
-            ),
-            # Stats y acciones
-            rx.hstack(
-                rx.card(
-                    rx.vstack(
-                        rx.hstack(
-                            rx.icon("file-text", size=24, color=COLORS["primary"]),
-                            rx.text(
-                                "Total de Estudios",
-                                size="2",
-                                color=COLORS["text_secondary"],
-                            ),
-                        ),
-                        rx.heading(
-                            MedicalStudyState.studies.length(),
-                            size="6",
-                        ),
-                        spacing="2",
-                        align="start",
-                    ),
-                    style={"background": COLORS["surface"]},
-                ),
-                rx.card(
-                    rx.vstack(
-                        rx.hstack(
-                            rx.icon("hard-drive", size=24, color=COLORS["primary"]),
-                            rx.text(
-                                "Almacenamiento Usado",
-                                size="2",
-                                color=COLORS["text_secondary"],
-                            ),
-                        ),
-                        rx.heading(
-                            f"{MedicalStudyState.storage_size_mb} MB",
-                            size="6",
-                        ),
-                        spacing="2",
-                        align="start",
-                    ),
-                    style={"background": COLORS["surface"]},
-                ),
-                rx.spacer(),
-                rx.button(
-                    rx.icon("plus", size=20),
-                    "Nuevo Estudio",
+        navbar(),
+        rx.container(
+            rx.vstack(
+                # Header
+                rx.heading("Estudios Médicos", size="8"),
+                rx.text(
+                    "Gestión de análisis y estudios complementarios",
                     size="3",
-                    on_click=MedicalStudyState.open_new_study_modal,
+                    color=COLORS["text_secondary"],
                 ),
-                width="100%",
-                spacing="4",
-            ),
-            # Filtros
-            rx.hstack(
-                rx.text("Filtrar por tipo:", size="2", weight="bold"),
-                rx.select(
-                    [
-                        "Todos",
-                        "Laboratorio",
-                        "Radiología",
-                        "Ecografía",
-                        "Tomografía",
-                        "Resonancia",
-                        "Electrocardiograma",
-                        "Endoscopía",
-                        "Biopsia",
-                        "Otro",
-                    ],
-                    placeholder="Todos",
-                    on_change=MedicalStudyState.load_studies_by_type,
-                ),
-                width="100%",
-                spacing="3",
-            ),
-            # Lista de estudios
-            rx.cond(
-                MedicalStudyState.studies.length() > 0,
-                rx.box(
-                    rx.foreach(
-                        MedicalStudyState.studies,
-                        study_card,
+                # Stats y acciones
+                rx.hstack(
+                    rx.card(
+                        rx.vstack(
+                            rx.hstack(
+                                rx.icon("file-text", size=24, color=COLORS["primary"]),
+                                rx.text(
+                                    "Total de Estudios",
+                                    size="2",
+                                    color=COLORS["text_secondary"],
+                                ),
+                            ),
+                            rx.heading(
+                                MedicalStudyState.studies.length(),
+                                size="6",
+                            ),
+                            spacing="2",
+                            align="start",
+                        ),
+                        style={"background": COLORS["surface"]},
+                    ),
+                    rx.card(
+                        rx.vstack(
+                            rx.hstack(
+                                rx.icon("hard-drive", size=24, color=COLORS["primary"]),
+                                rx.text(
+                                    "Almacenamiento Usado",
+                                    size="2",
+                                    color=COLORS["text_secondary"],
+                                ),
+                            ),
+                            rx.heading(
+                                f"{MedicalStudyState.storage_size_mb} MB",
+                                size="6",
+                            ),
+                            spacing="2",
+                            align="start",
+                        ),
+                        style={"background": COLORS["surface"]},
+                    ),
+                    rx.spacer(),
+                    rx.button(
+                        rx.icon("plus", size=20),
+                        "Nuevo Estudio",
+                        size="3",
+                        on_click=MedicalStudyState.open_new_study_modal,
                     ),
                     width="100%",
+                    spacing="4",
                 ),
-                rx.callout(
-                    "No hay estudios médicos registrados",
-                    icon="info",
-                    color_scheme="blue",
+                # Filtros
+                rx.hstack(
+                    rx.text("Filtrar por tipo:", size="2", weight="bold"),
+                    rx.select(
+                        [
+                            "Todos",
+                            "Laboratorio",
+                            "Radiología",
+                            "Ecografía",
+                            "Tomografía",
+                            "Resonancia",
+                            "Electrocardiograma",
+                            "Endoscopía",
+                            "Biopsia",
+                            "Otro",
+                        ],
+                        placeholder="Todos",
+                        on_change=MedicalStudyState.load_studies_by_type,
+                    ),
+                    width="100%",
+                    spacing="3",
                 ),
+                # Lista de estudios
+                rx.cond(
+                    MedicalStudyState.studies.length() > 0,
+                    rx.box(
+                        rx.foreach(
+                            MedicalStudyState.studies,
+                            study_card,
+                        ),
+                        width="100%",
+                    ),
+                    rx.callout(
+                        "No hay estudios médicos registrados",
+                        icon="info",
+                        color_scheme="blue",
+                    ),
+                ),
+                spacing="6",
+                width="100%",
+                padding="2rem",
             ),
-            spacing="6",
-            width="100%",
             max_width="1200px",
-            margin="0 auto",
-            padding="2rem",
         ),
+        new_study_modal(),
         on_mount=MedicalStudyState.load_studies,
-        style={
-            "background": COLORS["background"],
-            "min_height": "100vh",
-        },
+        background=COLORS["background"],
+        min_height="100vh",
     )
