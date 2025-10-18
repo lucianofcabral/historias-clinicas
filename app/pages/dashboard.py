@@ -4,7 +4,6 @@ import reflex as rx
 
 from app.components.navbar import navbar
 from app.config import COLORS
-from app.state.auth_state import AuthState
 
 
 class DashboardState(rx.State):
@@ -16,10 +15,6 @@ class DashboardState(rx.State):
 
     def on_load(self):
         """Se ejecuta al cargar la página"""
-        # Verificar autenticación
-        if not self.get_state(AuthState).is_authenticated:
-            return rx.redirect("/")
-
         # TODO: Cargar estadísticas reales desde la BD
         self.total_patients = 1000
         self.consultations_today = 5
@@ -100,7 +95,7 @@ def dashboard_page() -> rx.Component:
                 rx.hstack(
                     rx.link(
                         rx.button(
-                            rx.icon("user_plus", size=20),
+                            rx.icon("user-plus", size=20),
                             "Nuevo Paciente",
                             size="3",
                             color_scheme="blue",
@@ -109,7 +104,7 @@ def dashboard_page() -> rx.Component:
                     ),
                     rx.link(
                         rx.button(
-                            rx.icon("file_text", size=20),
+                            rx.icon("file-text", size=20),
                             "Nueva Consulta",
                             size="3",
                             color_scheme="green",
