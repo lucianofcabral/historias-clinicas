@@ -37,6 +37,15 @@ def consultation_card(consultation: dict) -> rx.Component:
                         on_click=lambda: ConsultationState.view_consultation(consultation["id"]),
                     ),
                     rx.button(
+                        rx.icon("pencil", size=16),
+                        size="2",
+                        variant="soft",
+                        color_scheme="blue",
+                        on_click=lambda: ConsultationState.open_edit_consultation_modal(
+                            consultation["id"]
+                        ),
+                    ),
+                    rx.button(
                         rx.icon("trash_2", size=16),
                         size="2",
                         variant="soft",
@@ -119,13 +128,17 @@ def consultation_card(consultation: dict) -> rx.Component:
 
 
 def new_consultation_modal() -> rx.Component:
-    """Modal para crear nueva consulta"""
+    """Modal para crear/editar consulta"""
     return rx.dialog.root(
         rx.dialog.content(
             rx.dialog.title(
                 rx.hstack(
                     rx.icon("file_text", size=24),
-                    "Nueva Consulta Médica",
+                    rx.cond(
+                        ConsultationState.editing_consultation_id,
+                        "Editar Consulta Médica",
+                        "Nueva Consulta Médica",
+                    ),
                     spacing="2",
                 ),
             ),
@@ -401,8 +414,12 @@ def new_consultation_modal() -> rx.Component:
                     ),
                 ),
                 rx.button(
-                    "Crear Consulta",
-                    on_click=ConsultationState.create_consultation,
+                    rx.cond(
+                        ConsultationState.editing_consultation_id,
+                        "Guardar Cambios",
+                        "Crear Consulta",
+                    ),
+                    on_click=ConsultationState.save_consultation,
                 ),
                 spacing="3",
                 margin_top="1rem",
