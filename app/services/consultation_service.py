@@ -5,7 +5,7 @@ Servicio para gestionar consultas médicas.
 from datetime import date, datetime
 from typing import Optional
 
-from sqlmodel import Session, or_, select
+from sqlmodel import Session, select
 
 from app.models import Consultation
 from app.utils.text_utils import normalize_search_term
@@ -141,7 +141,9 @@ class ConsultationService:
     ) -> list[Consultation]:
         """
         Busca consultas por motivo, síntomas, diagnóstico o tratamiento.
-        Normaliza el término de búsqueda para ignorar acentos.
+
+        Nota: SQLite no soporta comparación sin acentos nativamente,
+        por lo que filtramos en Python después de obtener los resultados.
 
         Args:
             session: Sesión de base de datos
@@ -152,26 +154,36 @@ class ConsultationService:
             list[Consultation]: Lista de consultas que coinciden con la búsqueda
         """
         # Normalizar término de búsqueda (sin acentos, minúsculas)
-        normalized_term = normalize_search_term(search_term)
-        search_pattern = f"%{normalized_term}%"
+        normalized_search = normalize_search_term(search_term)
 
-        query = (
-            select(Consultation)
-            .where(
-                or_(
-                    Consultation.reason.ilike(search_pattern),
-                    Consultation.symptoms.ilike(search_pattern),
-                    Consultation.diagnosis.ilike(search_pattern),
-                    Consultation.treatment.ilike(search_pattern),
-                )
-            )
-            .order_by(Consultation.consultation_date.desc())
-        )
+        # Obtener todas las consultas (o más de las que necesitamos para filtrar)
+        query = select(Consultation).order_by(Consultation.consultation_date.desc())
 
-        if limit:
-            query = query.limit(limit)
+        # Obtener más resultados de los necesarios para poder filtrar
+        all_consultations = list(session.exec(query).all())
 
-        return list(session.exec(query).all())
+        # Filtrar en Python comparando sin acentos
+        filtered = []
+        for consultation in all_consultations:
+            # Normalizar campos y buscar
+            reason_norm = normalize_search_term(consultation.reason or "")
+            symptoms_norm = normalize_search_term(consultation.symptoms or "")
+            diagnosis_norm = normalize_search_term(consultation.diagnosis or "")
+            treatment_norm = normalize_search_term(consultation.treatment or "")
+
+            if (
+                normalized_search in reason_norm
+                or normalized_search in symptoms_norm
+                or normalized_search in diagnosis_norm
+                or normalized_search in treatment_norm
+            ):
+                filtered.append(consultation)
+
+                # Aplicar límite si está definido
+                if limit and len(filtered) >= limit:
+                    break
+
+        return filtered
 
     @staticmethod
     def get_recent_consultations(session: Session, days: int = 30) -> list[Consultation]:
