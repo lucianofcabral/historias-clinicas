@@ -1,3 +1,6 @@
+.states
+assets/external/
+.web
 # Python
 __pycache__/
 *.py[cod]
@@ -32,6 +35,10 @@ env/
 # Environment variables
 .env
 .env.local
+
+# Archivos de estudios médicos (pueden contener datos sensibles)
+studies/*
+!studies/.gitkeep
 
 # Database
 *.db

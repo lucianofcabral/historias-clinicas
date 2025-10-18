@@ -11,6 +11,7 @@ load_dotenv()
 # Directorios
 BASE_DIR = Path(__file__).resolve().parent.parent
 BACKUP_PATH = BASE_DIR / "backups"
+STUDIES_PATH = BASE_DIR / "studies"  # Archivos de estudios médicos
 
 # Base de Datos
 DATABASE_URL = os.getenv(
@@ -64,3 +65,4 @@ if not ADMIN_PASSWORD_HASH and ENVIRONMENT == "production":
 
 # Crear carpeta de backups si no existe
 BACKUP_PATH.mkdir(parents=True, exist_ok=True)
+STUDIES_PATH.mkdir(parents=True, exist_ok=True)
