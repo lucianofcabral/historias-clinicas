@@ -22,9 +22,7 @@ class DashboardState(rx.State):
         session = next(get_session())
 
         # Total de pacientes
-        self.total_patients = session.exec(
-            select(func.count(Patient.id))
-        ).one()
+        self.total_patients = session.exec(select(func.count(Patient.id))).one()
 
         # Pacientes activos
         self.active_patients = session.exec(
@@ -38,10 +36,7 @@ class DashboardState(rx.State):
 
         # Últimos 5 pacientes registrados
         recent = session.exec(
-            select(Patient)
-            .where(Patient.is_active)
-            .order_by(Patient.created_at.desc())
-            .limit(5)
+            select(Patient).where(Patient.is_active).order_by(Patient.created_at.desc()).limit(5)
         ).all()
 
         self.recent_patients = [

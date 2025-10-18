@@ -56,9 +56,7 @@ class PatientState(rx.State):
                 session, include_inactive=self.show_inactive
             )
             self.total_patients = PatientService.get_patient_count(session, include_inactive=True)
-            self.active_patients = PatientService.get_patient_count(
-                session, include_inactive=False
-            )
+            self.active_patients = PatientService.get_patient_count(session, include_inactive=False)
         finally:
             session.close()
 

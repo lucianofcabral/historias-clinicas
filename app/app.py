@@ -2,6 +2,7 @@
 
 import reflex as rx
 
+from app.pages.consultations import consultations_page
 from app.pages.dashboard import dashboard_page
 from app.pages.login import login_page
 from app.pages.medical_studies import medical_studies_page
@@ -40,4 +41,11 @@ app.add_page(
     patients_page,
     route="/patients",
     title="Pacientes - Historias Clínicas",
+)
+
+# Página de consultas médicas
+app.add_page(
+    consultations_page,
+    route="/consultations",
+    title="Consultas Médicas - Historias Clínicas",
 )

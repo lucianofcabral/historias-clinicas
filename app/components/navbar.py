@@ -38,7 +38,16 @@ def navbar() -> rx.Component:
                 ),
                 rx.link(
                     rx.button(
-                        rx.icon("file-text", size=18),
+                        rx.icon("calendar_check", size=18),
+                        "Consultas",
+                        variant="ghost",
+                        color_scheme="gray",
+                    ),
+                    href="/consultations",
+                ),
+                rx.link(
+                    rx.button(
+                        rx.icon("flask_conical", size=18),
                         "Estudios",
                         variant="ghost",
                         color_scheme="gray",
