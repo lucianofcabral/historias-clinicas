@@ -2,10 +2,10 @@
 
 import reflex as rx
 
-from app.config import COLORS
 from app.pages.dashboard import dashboard_page
 from app.pages.login import login_page
 from app.pages.medical_studies import medical_studies_page
+from app.pages.patients import patients_page
 
 # Crear la aplicación
 app = rx.App(
@@ -35,27 +35,9 @@ app.add_page(
     title="Estudios Médicos - Historias Clínicas",
 )
 
-
-# Página de pacientes (placeholder por ahora)
-@rx.page(route="/patients", title="Pacientes - Historias Clínicas")
-def patients_page() -> rx.Component:
-    """Página de lista de pacientes (placeholder)"""
-    from app.components.navbar import navbar
-
-    return rx.box(
-        navbar(),
-        rx.container(
-            rx.vstack(
-                rx.heading("Pacientes", size="8", color=COLORS["text"]),
-                rx.text(
-                    "Lista de pacientes - En construcción",
-                    color=COLORS["text_secondary"],
-                ),
-                spacing="4",
-                padding_y="2rem",
-            ),
-            max_width="1200px",
-        ),
-        background=COLORS["background"],
-        min_height="100vh",
-    )
+# Página de pacientes
+app.add_page(
+    patients_page,
+    route="/patients",
+    title="Pacientes - Historias Clínicas",
+)
