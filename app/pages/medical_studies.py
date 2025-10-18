@@ -109,6 +109,13 @@ def study_card(study) -> rx.Component:
                     size="2",
                     on_click=lambda: MedicalStudyState.view_study(study.id),
                 ),
+                rx.button(
+                    rx.icon("pencil", size=16),
+                    variant="soft",
+                    color_scheme="blue",
+                    size="2",
+                    on_click=lambda: MedicalStudyState.open_edit_study_modal(study.id),
+                ),
                 rx.cond(
                     study.file_path,
                     rx.button(
@@ -148,7 +155,13 @@ def new_study_modal() -> rx.Component:
     """Modal para crear nuevo estudio"""
     return rx.dialog.root(
         rx.dialog.content(
-            rx.dialog.title("Nuevo Estudio Médico"),
+            rx.dialog.title(
+                rx.cond(
+                    MedicalStudyState.editing_study_id,
+                    "Editar Estudio Médico",
+                    "Nuevo Estudio Médico",
+                )
+            ),
             rx.dialog.description(
                 "Complete la información del estudio",
                 margin_bottom="1rem",
@@ -315,8 +328,12 @@ def new_study_modal() -> rx.Component:
                     ),
                 ),
                 rx.button(
-                    "Crear Estudio",
-                    on_click=MedicalStudyState.create_study,
+                    rx.cond(
+                        MedicalStudyState.editing_study_id,
+                        "Guardar Cambios",
+                        "Crear Estudio",
+                    ),
+                    on_click=MedicalStudyState.save_study,
                 ),
                 spacing="3",
                 margin_top="1rem",

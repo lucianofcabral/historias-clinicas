@@ -25,6 +25,9 @@ class MedicalStudyState(rx.State):
     selected_patient_id: Optional[int] = None
     selected_study_type: Optional[str] = None
 
+    # Edición de estudio
+    editing_study_id: Optional[int] = None
+
     # Formulario de nuevo estudio
     show_new_study_modal: bool = False
     form_patient_id: str = ""
@@ -90,8 +93,41 @@ class MedicalStudyState(rx.State):
 
     def open_new_study_modal(self):
         """Abre el modal para crear nuevo estudio"""
+        self.editing_study_id = None
         self.show_new_study_modal = True
         self.clear_form()
+
+    def open_edit_study_modal(self, study_id: int):
+        """Abre el modal para editar un estudio existente"""
+        session = next(get_session())
+        try:
+            study = session.get(MedicalStudy, study_id)
+            if not study:
+                self.message = f"Estudio con ID {study_id} no encontrado"
+                self.message_type = "error"
+                return
+
+            # Cargar datos del estudio en el formulario
+            self.editing_study_id = study_id
+            self.form_patient_id = str(study.patient_id)
+            self.form_study_type = study.study_type
+            self.form_study_name = study.study_name
+            self.form_study_date = str(study.study_date)
+            self.form_institution = study.institution or ""
+            self.form_requesting_doctor = study.requesting_doctor or ""
+            self.form_results = study.results or ""
+            self.form_observations = study.observations or ""
+            self.form_diagnosis = study.diagnosis or ""
+
+            # No cargamos el archivo existente para edición
+            self.uploaded_files = []
+            self.file_name = ""
+            self.file_size = 0
+            self.file_type = ""
+
+            self.show_new_study_modal = True
+        finally:
+            session.close()
 
     def close_new_study_modal(self):
         """Cierra el modal de nuevo estudio"""
@@ -201,6 +237,84 @@ class MedicalStudyState(rx.State):
         except Exception as e:
             self.message = f"Error al crear estudio: {str(e)}"
             self.message_type = "error"
+
+    def update_study(self):
+        """Actualiza un estudio médico existente"""
+        try:
+            if not self.editing_study_id:
+                self.message = "No hay estudio en edición"
+                self.message_type = "error"
+                return
+
+            if not self.form_study_name:
+                self.message = "El nombre del estudio es requerido"
+                self.message_type = "error"
+                return
+
+            session = next(get_session())
+            try:
+                # Convertir y validar fecha
+                try:
+                    study_date = date.fromisoformat(self.form_study_date)
+                except ValueError:
+                    self.message = "Formato de fecha inválido"
+                    self.message_type = "error"
+                    return
+
+                # Actualizar estudio usando el servicio
+                study = MedicalStudyService.update_study(
+                    session=session,
+                    study_id=self.editing_study_id,
+                    study_name=self.form_study_name,
+                    study_date=study_date,
+                    institution=self.form_institution if self.form_institution else None,
+                    results=self.form_results if self.form_results else None,
+                    study_type=StudyType(self.form_study_type),
+                )
+
+                # Actualizar campos adicionales directamente
+                study.requesting_doctor = (
+                    self.form_requesting_doctor if self.form_requesting_doctor else None
+                )
+                study.observations = self.form_observations if self.form_observations else None
+                study.diagnosis = self.form_diagnosis if self.form_diagnosis else None
+
+                session.add(study)
+                session.commit()
+
+                # Subir nuevo archivo si existe
+                if self.uploaded_files:
+                    from pathlib import Path
+
+                    upload_file = Path(self.uploaded_files[0])
+
+                    if upload_file.exists():
+                        with open(upload_file, "rb") as f:
+                            MedicalStudyService.upload_file(
+                                session=session,
+                                study_id=study.id,
+                                file_content=f,
+                                file_name=self.file_name,
+                                file_type=self.file_type,
+                            )
+
+                self.message = f"Estudio '{self.form_study_name}' actualizado exitosamente"
+                self.message_type = "success"
+                self.close_new_study_modal()
+                self.load_studies(self.selected_patient_id)
+            finally:
+                session.close()
+
+        except Exception as e:
+            self.message = f"Error al actualizar estudio: {str(e)}"
+            self.message_type = "error"
+
+    def save_study(self):
+        """Guarda el estudio (crea o actualiza según el modo)"""
+        if self.editing_study_id:
+            self.update_study()
+        else:
+            self.create_study()
 
     def delete_study(self, study_id: int):
         """Elimina un estudio médico"""
