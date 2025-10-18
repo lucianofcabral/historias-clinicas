@@ -54,6 +54,24 @@ def navbar() -> rx.Component:
                     ),
                     href="/studies",
                 ),
+                rx.link(
+                    rx.button(
+                        rx.icon("file_text", size=18),
+                        "Reportes",
+                        variant="ghost",
+                        color_scheme="gray",
+                    ),
+                    href="/reports",
+                ),
+                rx.link(
+                    rx.button(
+                        rx.icon("settings", size=18),
+                        "Config",
+                        variant="ghost",
+                        color_scheme="gray",
+                    ),
+                    href="/settings",
+                ),
                 spacing="2",
             ),
             # Usuario y logout

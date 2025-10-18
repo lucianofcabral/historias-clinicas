@@ -9,6 +9,8 @@ from app.pages.login import login_page
 from app.pages.medical_studies import medical_studies_page
 from app.pages.patient_detail import patient_detail_page
 from app.pages.patients import patients_page
+from app.pages.reports import reports_page
+from app.pages.settings import settings_page
 
 # Crear la aplicación
 app = rx.App(
@@ -64,6 +66,20 @@ app.add_page(
     consultation_detail_page,
     route="/consultations/[consultation_id]",
     title="Detalle Consulta - Historias Clínicas",
+)
+
+# Página de reportes y exportación
+app.add_page(
+    reports_page,
+    route="/reports",
+    title="Reportes - Historias Clínicas",
+)
+
+# Página de configuración y backups
+app.add_page(
+    settings_page,
+    route="/settings",
+    title="Configuración - Historias Clínicas",
 )
 
 # Página de estudios médicos
