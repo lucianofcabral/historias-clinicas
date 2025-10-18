@@ -26,10 +26,11 @@ class PatientState(rx.State):
     total_patients: int = 0
     active_patients: int = 0
 
-    # Modal de nuevo paciente
+    # Modal de nuevo/editar paciente
     show_new_patient_modal: bool = False
+    editing_patient_id: Optional[int] = None  # None = crear, ID = editar
 
-    # Formulario de nuevo paciente
+    # Formulario de nuevo/editar paciente
     form_first_name: str = ""
     form_last_name: str = ""
     form_dni: str = ""
@@ -94,12 +95,38 @@ class PatientState(rx.State):
 
     def open_new_patient_modal(self):
         """Abre el modal para crear nuevo paciente"""
+        self.editing_patient_id = None
         self.show_new_patient_modal = True
         self.clear_form()
 
+    def open_edit_patient_modal(self, patient_id: int):
+        """Abre el modal para editar paciente existente"""
+        session = next(get_session())
+        try:
+            patient = session.get(Patient, patient_id)
+            if patient:
+                self.editing_patient_id = patient_id
+                self.form_first_name = patient.first_name
+                self.form_last_name = patient.last_name
+                self.form_dni = patient.dni
+                self.form_birth_date = patient.birth_date.isoformat()
+                self.form_gender = patient.gender
+                self.form_blood_type = patient.blood_type or ""
+                self.form_phone = patient.phone or ""
+                self.form_email = patient.email or ""
+                self.form_address = patient.address or ""
+                self.form_allergies = patient.allergies or ""
+                self.form_chronic_conditions = patient.chronic_conditions or ""
+                self.form_family_history = patient.family_history or ""
+                self.form_notes = patient.notes or ""
+                self.show_new_patient_modal = True
+        finally:
+            session.close()
+
     def close_new_patient_modal(self):
-        """Cierra el modal de nuevo paciente"""
+        """Cierra el modal de nuevo/editar paciente"""
         self.show_new_patient_modal = False
+        self.editing_patient_id = None
         self.clear_form()
 
     def clear_form(self):
@@ -118,6 +145,13 @@ class PatientState(rx.State):
         self.form_family_history = ""
         self.form_notes = ""
         self.message = ""
+
+    def save_patient(self):
+        """Guarda un paciente (crear o actualizar según editing_patient_id)"""
+        if self.editing_patient_id is None:
+            self.create_patient()
+        else:
+            self.update_patient()
 
     def create_patient(self):
         """Crea un nuevo paciente"""
@@ -171,6 +205,59 @@ class PatientState(rx.State):
 
         except Exception as e:
             self.message = f"Error al crear paciente: {str(e)}"
+            self.message_type = "error"
+
+    def update_patient(self):
+        """Actualiza un paciente existente"""
+        try:
+            # Validar campos requeridos
+            if not self.form_first_name or not self.form_last_name or not self.form_dni:
+                self.message = "Complete los campos requeridos: Nombre, Apellido y DNI"
+                self.message_type = "error"
+                return
+
+            if not self.form_birth_date:
+                self.message = "Complete la fecha de nacimiento"
+                self.message_type = "error"
+                return
+
+            session = next(get_session())
+            try:
+                # Crear diccionario con datos actualizados
+                update_data = {
+                    "first_name": self.form_first_name,
+                    "last_name": self.form_last_name,
+                    "dni": self.form_dni,
+                    "birth_date": date.fromisoformat(self.form_birth_date),
+                    "gender": self.form_gender,
+                    "blood_type": self.form_blood_type or None,
+                    "phone": self.form_phone or None,
+                    "email": self.form_email or None,
+                    "address": self.form_address or None,
+                    "allergies": self.form_allergies or None,
+                    "chronic_conditions": self.form_chronic_conditions or None,
+                    "family_history": self.form_family_history or None,
+                    "notes": self.form_notes or None,
+                }
+
+                patient = PatientService.update_patient(
+                    session, self.editing_patient_id, update_data
+                )
+
+                if patient:
+                    self.message = f"Paciente {patient.full_name} actualizado exitosamente"
+                    self.message_type = "success"
+                    self.close_new_patient_modal()
+                    self.load_patients()
+                else:
+                    self.message = "No se encontró el paciente"
+                    self.message_type = "error"
+
+            finally:
+                session.close()
+
+        except Exception as e:
+            self.message = f"Error al actualizar paciente: {str(e)}"
             self.message_type = "error"
 
     def delete_patient(self, patient_id: int):

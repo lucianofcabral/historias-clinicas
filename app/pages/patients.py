@@ -83,9 +83,11 @@ def patient_card(patient) -> rx.Component:
                 ),
                 rx.button(
                     rx.icon("pen", size=16),
+                    "Editar",
                     variant="soft",
                     color_scheme="blue",
                     size="2",
+                    on_click=lambda: PatientState.open_edit_patient_modal(patient.id),
                 ),
                 rx.button(
                     rx.icon("trash-2", size=16),
@@ -111,10 +113,16 @@ def patient_card(patient) -> rx.Component:
 
 
 def new_patient_modal() -> rx.Component:
-    """Modal para crear nuevo paciente"""
+    """Modal para crear/editar paciente"""
     return rx.dialog.root(
         rx.dialog.content(
-            rx.dialog.title("Nuevo Paciente"),
+            rx.dialog.title(
+                rx.cond(
+                    PatientState.editing_patient_id.is_none(),
+                    "Nuevo Paciente",
+                    "Editar Paciente",
+                )
+            ),
             rx.dialog.description(
                 "Complete la información del paciente",
                 margin_bottom="1rem",
@@ -325,8 +333,12 @@ def new_patient_modal() -> rx.Component:
                     ),
                 ),
                 rx.button(
-                    "Crear Paciente",
-                    on_click=PatientState.create_patient,
+                    rx.cond(
+                        PatientState.editing_patient_id.is_none(),
+                        "Crear Paciente",
+                        "Guardar Cambios",
+                    ),
+                    on_click=PatientState.save_patient,
                 ),
                 spacing="3",
                 margin_top="1rem",
