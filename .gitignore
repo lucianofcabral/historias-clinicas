@@ -45,9 +45,12 @@ studies/*
 *.sqlite
 *.sqlite3
 
-# Backups
+# Backups (no subir los archivos de backup, solo el directorio)
 backups/*.sql
 backups/*.dump
+backups/*.zip
+backups/*.db
+!backups/.gitkeep
 
 # Reflex
 .web/
