@@ -223,7 +223,7 @@ def dashboard_page() -> rx.Component:
                     stat_card(
                         "Estudios Críticos",
                         DashboardState.critical_studies.to_string(),
-                        "alert-triangle",
+                        "triangle_alert",
                         COLORS["danger"],
                     ),
                     columns="3",
@@ -249,7 +249,7 @@ def dashboard_page() -> rx.Component:
                                     lambda study: rx.card(
                                         rx.vstack(
                                             rx.hstack(
-                                                rx.icon("alert-triangle", size=20, color=COLORS["danger"]),
+                                                rx.icon("triangle_alert", size=20, color=COLORS["danger"]),
                                                 rx.text(
                                                     study["patient_name"],
                                                     font_weight="600",
@@ -282,7 +282,7 @@ def dashboard_page() -> rx.Component:
                             ),
                             rx.callout(
                                 "No hay estudios críticos",
-                                icon="check-circle",
+                                icon="circle_check",
                                 color_scheme="green",
                             ),
                         ),

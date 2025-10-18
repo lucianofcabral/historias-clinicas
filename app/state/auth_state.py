@@ -14,6 +14,10 @@ class AuthState(rx.State):
     login_error: str = ""
     is_loading: bool = False
 
+    def set_login_error(self, value: str):
+        """Setter para login_error"""
+        self.login_error = value
+
     def login(self, password: str) -> rx.event.EventSpec | None:
         """
         Intenta hacer login con la contraseña proporcionada

@@ -49,6 +49,67 @@ class PatientState(rx.State):
     message: str = ""
     message_type: str = ""  # "success" o "error"
 
+    # Setters explícitos para evitar deprecation warnings
+    def set_search_query(self, value: str):
+        """Setter para search_query"""
+        self.search_query = value
+
+    def set_show_new_patient_modal(self, value: bool):
+        """Setter para show_new_patient_modal"""
+        self.show_new_patient_modal = value
+
+    def set_form_first_name(self, value: str):
+        """Setter para form_first_name"""
+        self.form_first_name = value
+
+    def set_form_last_name(self, value: str):
+        """Setter para form_last_name"""
+        self.form_last_name = value
+
+    def set_form_dni(self, value: str):
+        """Setter para form_dni"""
+        self.form_dni = value
+
+    def set_form_birth_date(self, value: str):
+        """Setter para form_birth_date"""
+        self.form_birth_date = value
+
+    def set_form_gender(self, value: str):
+        """Setter para form_gender"""
+        self.form_gender = value
+
+    def set_form_blood_type(self, value: str):
+        """Setter para form_blood_type"""
+        self.form_blood_type = value
+
+    def set_form_phone(self, value: str):
+        """Setter para form_phone"""
+        self.form_phone = value
+
+    def set_form_email(self, value: str):
+        """Setter para form_email"""
+        self.form_email = value
+
+    def set_form_address(self, value: str):
+        """Setter para form_address"""
+        self.form_address = value
+
+    def set_form_allergies(self, value: str):
+        """Setter para form_allergies"""
+        self.form_allergies = value
+
+    def set_form_chronic_conditions(self, value: str):
+        """Setter para form_chronic_conditions"""
+        self.form_chronic_conditions = value
+
+    def set_form_family_history(self, value: str):
+        """Setter para form_family_history"""
+        self.form_family_history = value
+
+    def set_form_notes(self, value: str):
+        """Setter para form_notes"""
+        self.form_notes = value
+
     def load_patients(self):
         """Carga todos los pacientes"""
         session = next(get_session())

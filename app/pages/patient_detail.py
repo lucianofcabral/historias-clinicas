@@ -151,7 +151,7 @@ def medical_info_card() -> rx.Component:
                 PatientDetailState.patient.allergies,
                 rx.vstack(
                     rx.hstack(
-                        rx.icon("alert-circle", size=18, color="red"),
+                        rx.icon("circle_alert", size=18, color="red"),
                         rx.text("Alergias", size="3", weight="bold"),
                         spacing="2",
                     ),
@@ -429,13 +429,34 @@ def patient_detail_page() -> rx.Component:
     return rx.box(
         rx.container(
             rx.vstack(
-                # Botón volver
-                rx.button(
-                    rx.icon("arrow-left", size=18),
-                    "Volver",
-                    on_click=rx.call_script("window.history.back()"),
-                    variant="soft",
-                    size="2",
+                # Botones de acción
+                rx.hstack(
+                    rx.button(
+                        rx.icon("arrow-left", size=18),
+                        "Volver",
+                        on_click=rx.call_script("window.history.back()"),
+                        variant="soft",
+                        size="2",
+                    ),
+                    rx.spacer(),
+                    rx.button(
+                        rx.icon("file_text", size=18),
+                        "Exportar PDF",
+                        on_click=lambda: PatientDetailState.export_patient_pdf(),
+                        variant="outline",
+                        size="2",
+                        color_scheme="red",
+                    ),
+                    rx.button(
+                        rx.icon("file_spreadsheet", size=18),
+                        "Exportar Excel",
+                        on_click=lambda: PatientDetailState.export_patient_excel(),
+                        variant="outline",
+                        size="2",
+                        color_scheme="green",
+                    ),
+                    width="100%",
+                    align="center",
                 ),
                 # Header del paciente
                 patient_header(),

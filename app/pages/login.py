@@ -11,6 +11,10 @@ class LoginPageState(rx.State):
 
     password: str = ""
 
+    def set_password(self, value: str):
+        """Setter para password"""
+        self.password = value
+
 
 def login_page() -> rx.Component:
     """Página de login con diseño oscuro"""

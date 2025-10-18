@@ -75,3 +75,41 @@ class PatientDetailState(rx.State):
 
         finally:
             session.close()
+
+    def export_patient_pdf(self):
+        """Exporta el historial del paciente a PDF"""
+        if not self.current_patient_id:
+            return
+
+        from app.services import ReportService
+
+        try:
+            content = ReportService.generate_patient_history_pdf(self.current_patient_id)
+            filename = f"historial_paciente_{self.current_patient_id}.pdf"
+
+            return rx.download(
+                data=content,
+                filename=filename,
+            )
+
+        except Exception as e:
+            print(f"Error al exportar PDF: {str(e)}")
+
+    def export_patient_excel(self):
+        """Exporta el historial del paciente a Excel"""
+        if not self.current_patient_id:
+            return
+
+        from app.services import ReportService
+
+        try:
+            content = ReportService.generate_patient_history_excel(self.current_patient_id)
+            filename = f"historial_paciente_{self.current_patient_id}.xlsx"
+
+            return rx.download(
+                data=content,
+                filename=filename,
+            )
+
+        except Exception as e:
+            print(f"Error al exportar Excel: {str(e)}")

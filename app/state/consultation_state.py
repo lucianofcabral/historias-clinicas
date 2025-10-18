@@ -43,6 +43,59 @@ class ConsultationState(rx.State):
     error_message: str = ""
     success_message: str = ""
 
+    # Setters explícitos
+    def set_show_new_consultation_modal(self, value: bool):
+        """Setter para show_new_consultation_modal"""
+        self.show_new_consultation_modal = value
+
+    def set_form_patient_id(self, value: str):
+        """Setter para form_patient_id"""
+        self.form_patient_id = value
+
+    def set_form_reason(self, value: str):
+        """Setter para form_reason"""
+        self.form_reason = value
+
+    def set_form_symptoms(self, value: str):
+        """Setter para form_symptoms"""
+        self.form_symptoms = value
+
+    def set_form_diagnosis(self, value: str):
+        """Setter para form_diagnosis"""
+        self.form_diagnosis = value
+
+    def set_form_treatment(self, value: str):
+        """Setter para form_treatment"""
+        self.form_treatment = value
+
+    def set_form_notes(self, value: str):
+        """Setter para form_notes"""
+        self.form_notes = value
+
+    def set_form_blood_pressure(self, value: str):
+        """Setter para form_blood_pressure"""
+        self.form_blood_pressure = value
+
+    def set_form_heart_rate(self, value: str):
+        """Setter para form_heart_rate"""
+        self.form_heart_rate = value
+
+    def set_form_temperature(self, value: str):
+        """Setter para form_temperature"""
+        self.form_temperature = value
+
+    def set_form_weight(self, value: str):
+        """Setter para form_weight"""
+        self.form_weight = value
+
+    def set_form_height(self, value: str):
+        """Setter para form_height"""
+        self.form_height = value
+
+    def set_form_next_visit(self, value: str):
+        """Setter para form_next_visit"""
+        self.form_next_visit = value
+
     def load_consultations(self):
         """Carga todas las consultas o filtra por búsqueda/paciente"""
         session = next(get_session())

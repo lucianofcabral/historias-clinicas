@@ -58,6 +58,51 @@ class MedicalStudyState(rx.State):
     message: str = ""
     message_type: str = ""  # "success" o "error"
 
+    # Setters explícitos
+    def set_show_new_study_modal(self, value: bool):
+        """Setter para show_new_study_modal"""
+        self.show_new_study_modal = value
+
+    def set_show_detail_modal(self, value: bool):
+        """Setter para show_detail_modal"""
+        self.show_detail_modal = value
+
+    def set_form_patient_id(self, value: str):
+        """Setter para form_patient_id"""
+        self.form_patient_id = value
+
+    def set_form_study_type(self, value: str):
+        """Setter para form_study_type"""
+        self.form_study_type = value
+
+    def set_form_study_name(self, value: str):
+        """Setter para form_study_name"""
+        self.form_study_name = value
+
+    def set_form_study_date(self, value: str):
+        """Setter para form_study_date"""
+        self.form_study_date = value
+
+    def set_form_institution(self, value: str):
+        """Setter para form_institution"""
+        self.form_institution = value
+
+    def set_form_requesting_doctor(self, value: str):
+        """Setter para form_requesting_doctor"""
+        self.form_requesting_doctor = value
+
+    def set_form_results(self, value: str):
+        """Setter para form_results"""
+        self.form_results = value
+
+    def set_form_observations(self, value: str):
+        """Setter para form_observations"""
+        self.form_observations = value
+
+    def set_form_diagnosis(self, value: str):
+        """Setter para form_diagnosis"""
+        self.form_diagnosis = value
+
     def load_studies(self, patient_id: Optional[int] = None):
         """Carga los estudios médicos"""
         session = next(get_session())
