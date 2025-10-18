@@ -1,0 +1,187 @@
+"""Estado para gestión de estudios médicos"""
+
+from datetime import date
+from typing import Optional
+
+import reflex as rx
+from sqlmodel import select
+
+from app.database import get_session
+from app.models import MedicalStudy, Patient, StudyType
+from app.services import MedicalStudyService
+
+
+class MedicalStudyState(rx.State):
+    """Estado para gestión de estudios médicos"""
+
+    # Lista de estudios
+    studies: list[MedicalStudy] = []
+    current_study: Optional[MedicalStudy] = None
+
+    # Estadísticas
+    storage_size_mb: float = 0.0
+
+    # Filtros
+    selected_patient_id: Optional[int] = None
+    selected_study_type: Optional[str] = None
+
+    # Formulario de nuevo estudio
+    show_new_study_modal: bool = False
+    form_patient_id: str = ""
+    form_study_type: str = StudyType.LABORATORY.value
+    form_study_name: str = ""
+    form_study_date: str = str(date.today())
+    form_institution: str = ""
+    form_requesting_doctor: str = ""
+    form_results: str = ""
+    form_observations: str = ""
+    form_diagnosis: str = ""
+
+    # Mensajes
+    message: str = ""
+    message_type: str = ""  # "success" o "error"
+
+    def load_studies(self, patient_id: Optional[int] = None):
+        """Carga los estudios médicos"""
+        session = next(get_session())
+        try:
+            if patient_id:
+                self.studies = MedicalStudyService.get_studies_by_patient(session, patient_id)
+                self.selected_patient_id = patient_id
+            else:
+                # Cargar todos los estudios
+                statement = select(MedicalStudy).order_by(MedicalStudy.study_date.desc())
+                self.studies = list(session.exec(statement).all())
+
+            # Cargar estadísticas de almacenamiento
+            bytes_used = MedicalStudyService.get_total_storage_size(session, patient_id)
+            self.storage_size_mb = round(bytes_used / (1024 * 1024), 2)
+        finally:
+            session.close()
+
+    def load_studies_by_type(self, study_type: str):
+        """Filtra estudios por tipo"""
+        # Manejar "Todos" como caso especial
+        if study_type == "Todos":
+            self.selected_study_type = None
+        else:
+            self.selected_study_type = study_type
+
+        session = next(get_session())
+        try:
+            statement = select(MedicalStudy)
+
+            if self.selected_patient_id:
+                statement = statement.where(MedicalStudy.patient_id == self.selected_patient_id)
+
+            if self.selected_study_type:
+                statement = statement.where(MedicalStudy.study_type == self.selected_study_type)
+
+            statement = statement.order_by(MedicalStudy.study_date.desc())
+            self.studies = list(session.exec(statement).all())
+        finally:
+            session.close()
+
+    def open_new_study_modal(self):
+        """Abre el modal para crear nuevo estudio"""
+        self.show_new_study_modal = True
+        self.clear_form()
+
+    def close_new_study_modal(self):
+        """Cierra el modal de nuevo estudio"""
+        self.show_new_study_modal = False
+        self.clear_form()
+
+    def clear_form(self):
+        """Limpia el formulario"""
+        self.form_patient_id = ""
+        self.form_study_type = StudyType.LABORATORY.value
+        self.form_study_name = ""
+        self.form_study_date = str(date.today())
+        self.form_institution = ""
+        self.form_requesting_doctor = ""
+        self.form_results = ""
+        self.form_observations = ""
+        self.form_diagnosis = ""
+        self.message = ""
+
+    def create_study(self):
+        """Crea un nuevo estudio médico"""
+        try:
+            if not self.form_patient_id or not self.form_study_name:
+                self.message = "Complete los campos requeridos"
+                self.message_type = "error"
+                return
+
+            session = next(get_session())
+            try:
+                # Validar que el paciente existe
+                patient = session.get(Patient, int(self.form_patient_id))
+                if not patient:
+                    self.message = f"Paciente con ID {self.form_patient_id} no encontrado"
+                    self.message_type = "error"
+                    return
+
+                study = MedicalStudyService.create_study(
+                    session=session,
+                    patient_id=int(self.form_patient_id),
+                    study_type=StudyType(self.form_study_type),
+                    study_name=self.form_study_name,
+                    study_date=date.fromisoformat(self.form_study_date),
+                    institution=self.form_institution or None,
+                    results=self.form_results or None,
+                )
+
+                # Actualizar campos adicionales si se proporcionaron
+                if self.form_requesting_doctor:
+                    study.requesting_doctor = self.form_requesting_doctor
+                if self.form_observations:
+                    study.observations = self.form_observations
+                if self.form_diagnosis:
+                    study.diagnosis = self.form_diagnosis
+
+                session.add(study)
+                session.commit()
+
+                self.message = f"Estudio '{self.form_study_name}' creado exitosamente"
+                self.message_type = "success"
+                self.close_new_study_modal()
+                self.load_studies(self.selected_patient_id)
+            finally:
+                session.close()
+
+        except Exception as e:
+            self.message = f"Error al crear estudio: {str(e)}"
+            self.message_type = "error"
+
+    def delete_study(self, study_id: int):
+        """Elimina un estudio médico"""
+        try:
+            session = next(get_session())
+            try:
+                MedicalStudyService.delete_study(session, study_id)
+                self.message = "Estudio eliminado exitosamente"
+                self.message_type = "success"
+                self.load_studies(self.selected_patient_id)
+            finally:
+                session.close()
+        except Exception as e:
+            self.message = f"Error al eliminar estudio: {str(e)}"
+            self.message_type = "error"
+
+    def view_study(self, study_id: int):
+        """Ver detalles de un estudio"""
+        session = next(get_session())
+        try:
+            self.current_study = session.get(MedicalStudy, study_id)
+        finally:
+            session.close()
+
+    def get_patient_name(self, patient_id: int) -> str:
+        """Obtiene el nombre del paciente"""
+        session = next(get_session())
+        try:
+            patient = session.get(Patient, patient_id)
+            return patient.full_name if patient else "Desconocido"
+        finally:
+            session.close()
