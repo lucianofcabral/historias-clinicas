@@ -151,6 +151,236 @@ def study_card(study) -> rx.Component:
     )
 
 
+def detail_modal() -> rx.Component:
+    """Modal para ver detalles del estudio"""
+    return rx.dialog.root(
+        rx.dialog.content(
+            rx.dialog.title(
+                rx.hstack(
+                    rx.text("Detalle del Estudio", size="5", weight="bold"),
+                    rx.spacer(),
+                    rx.dialog.close(
+                        rx.icon("x", size=20),
+                    ),
+                    width="100%",
+                )
+            ),
+            rx.cond(
+                MedicalStudyState.detail_study,
+                rx.vstack(
+                    # Header con tipo y fecha
+                    rx.hstack(
+                        study_type_badge(MedicalStudyState.detail_study.study_type),
+                        rx.spacer(),
+                        rx.text(
+                            MedicalStudyState.detail_study.study_date.to_string(),
+                            size="3",
+                            weight="bold",
+                            color=COLORS["text_secondary"],
+                        ),
+                        width="100%",
+                    ),
+                    rx.divider(),
+                    # Nombre del estudio
+                    rx.vstack(
+                        rx.text("Nombre del Estudio", size="2", weight="bold", color=COLORS["text_secondary"]),
+                        rx.heading(MedicalStudyState.detail_study.study_name, size="5"),
+                        spacing="1",
+                        align="start",
+                        width="100%",
+                    ),
+                    rx.divider(),
+                    # Información del estudio
+                    rx.grid(
+                        rx.vstack(
+                            rx.text("Institución", size="2", weight="bold", color=COLORS["text_secondary"]),
+                            rx.text(
+                                rx.cond(
+                                    MedicalStudyState.detail_study.institution,
+                                    MedicalStudyState.detail_study.institution,
+                                    "No especificado",
+                                ),
+                                size="3",
+                            ),
+                            spacing="1",
+                            align="start",
+                        ),
+                        rx.vstack(
+                            rx.text("Médico Solicitante", size="2", weight="bold", color=COLORS["text_secondary"]),
+                            rx.text(
+                                rx.cond(
+                                    MedicalStudyState.detail_study.requesting_doctor,
+                                    MedicalStudyState.detail_study.requesting_doctor,
+                                    "No especificado",
+                                ),
+                                size="3",
+                            ),
+                            spacing="1",
+                            align="start",
+                        ),
+                        columns="2",
+                        spacing="4",
+                        width="100%",
+                    ),
+                    rx.divider(),
+                    # Resultados
+                    rx.cond(
+                        MedicalStudyState.detail_study.results,
+                        rx.vstack(
+                            rx.text("Resultados", size="2", weight="bold", color=COLORS["text_secondary"]),
+                            rx.box(
+                                rx.text(
+                                    MedicalStudyState.detail_study.results,
+                                    size="3",
+                                    white_space="pre-wrap",
+                                ),
+                                padding="1rem",
+                                background=COLORS["background"],
+                                border_radius="8px",
+                                width="100%",
+                            ),
+                            spacing="2",
+                            align="start",
+                            width="100%",
+                        ),
+                        rx.box(),
+                    ),
+                    # Diagnóstico
+                    rx.cond(
+                        MedicalStudyState.detail_study.diagnosis,
+                        rx.vstack(
+                            rx.text("Diagnóstico", size="2", weight="bold", color=COLORS["text_secondary"]),
+                            rx.box(
+                                rx.text(
+                                    MedicalStudyState.detail_study.diagnosis,
+                                    size="3",
+                                    white_space="pre-wrap",
+                                ),
+                                padding="1rem",
+                                background=COLORS["background"],
+                                border_radius="8px",
+                                width="100%",
+                            ),
+                            spacing="2",
+                            align="start",
+                            width="100%",
+                        ),
+                        rx.box(),
+                    ),
+                    # Observaciones
+                    rx.cond(
+                        MedicalStudyState.detail_study.observations,
+                        rx.vstack(
+                            rx.text("Observaciones", size="2", weight="bold", color=COLORS["text_secondary"]),
+                            rx.box(
+                                rx.text(
+                                    MedicalStudyState.detail_study.observations,
+                                    size="3",
+                                    white_space="pre-wrap",
+                                ),
+                                padding="1rem",
+                                background=COLORS["background"],
+                                border_radius="8px",
+                                width="100%",
+                            ),
+                            spacing="2",
+                            align="start",
+                            width="100%",
+                        ),
+                        rx.box(),
+                    ),
+                    # Archivo adjunto
+                    rx.cond(
+                        MedicalStudyState.detail_study.file_path,
+                        rx.vstack(
+                            rx.divider(),
+                            rx.hstack(
+                                rx.icon("file-text", size=20, color=COLORS["primary"]),
+                                rx.vstack(
+                                    rx.text("Archivo Adjunto", size="2", weight="bold"),
+                                    rx.text(
+                                        MedicalStudyState.detail_study.file_name,
+                                        size="2",
+                                        color=COLORS["text_secondary"],
+                                    ),
+                                    spacing="0",
+                                    align="start",
+                                ),
+                                rx.spacer(),
+                                rx.button(
+                                    rx.icon("download", size=16),
+                                    "Descargar",
+                                    variant="soft",
+                                    color_scheme="green",
+                                    size="2",
+                                    on_click=lambda: MedicalStudyState.download_file(
+                                        MedicalStudyState.detail_study.id
+                                    ),
+                                ),
+                                width="100%",
+                                align="center",
+                            ),
+                            spacing="3",
+                            width="100%",
+                        ),
+                        rx.box(),
+                    ),
+                    # Botones de acción
+                    rx.divider(),
+                    rx.hstack(
+                        rx.dialog.close(
+                            rx.button(
+                                "Cerrar",
+                                variant="soft",
+                                color_scheme="gray",
+                                size="3",
+                            ),
+                        ),
+                        rx.button(
+                            rx.icon("pencil", size=16),
+                            "Editar",
+                            variant="soft",
+                            color_scheme="blue",
+                            size="3",
+                            on_click=[
+                                lambda: MedicalStudyState.open_edit_study_modal(
+                                    MedicalStudyState.detail_study.id
+                                ),
+                                MedicalStudyState.close_detail_modal,
+                            ],
+                        ),
+                        rx.button(
+                            rx.icon("trash-2", size=16),
+                            "Eliminar",
+                            variant="soft",
+                            color_scheme="red",
+                            size="3",
+                            on_click=[
+                                lambda: MedicalStudyState.delete_study(
+                                    MedicalStudyState.detail_study.id
+                                ),
+                                MedicalStudyState.close_detail_modal,
+                            ],
+                        ),
+                        spacing="3",
+                        width="100%",
+                        justify="end",
+                    ),
+                    spacing="4",
+                    width="100%",
+                ),
+                rx.text("Cargando...", size="3"),
+            ),
+            max_width="800px",
+            max_height="80vh",
+            overflow_y="auto",
+            padding="2rem",
+        ),
+        open=MedicalStudyState.show_detail_modal,
+        on_open_change=MedicalStudyState.set_show_detail_modal,
+    )
+
+
 def new_study_modal() -> rx.Component:
     """Modal para crear nuevo estudio"""
     return rx.dialog.root(
@@ -457,6 +687,7 @@ def medical_studies_page() -> rx.Component:
             max_width="1200px",
         ),
         new_study_modal(),
+        detail_modal(),
         on_mount=MedicalStudyState.load_studies,
         background=COLORS["background"],
         min_height="100vh",

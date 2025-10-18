@@ -18,6 +18,10 @@ class MedicalStudyState(rx.State):
     studies: list[MedicalStudy] = []
     current_study: Optional[MedicalStudy] = None
 
+    # Vista de detalle
+    show_detail_modal: bool = False
+    detail_study: Optional[MedicalStudy] = None
+
     # Estadísticas
     storage_size_mb: float = 0.0
 
@@ -45,6 +49,10 @@ class MedicalStudyState(rx.State):
     file_name: str = ""
     file_size: int = 0
     file_type: str = ""
+
+    # Archivo existente (para modo edición)
+    existing_file_name: str = ""
+    existing_file_path: str = ""
 
     # Mensajes
     message: str = ""
@@ -134,6 +142,22 @@ class MedicalStudyState(rx.State):
         self.show_new_study_modal = False
         self.clear_form()
 
+    def view_study(self, study_id: int):
+        """Abre el modal de detalle del estudio"""
+        session = next(get_session())
+        try:
+            study = session.get(MedicalStudy, study_id)
+            if study:
+                self.detail_study = study
+                self.show_detail_modal = True
+        finally:
+            session.close()
+
+    def close_detail_modal(self):
+        """Cierra el modal de detalle"""
+        self.show_detail_modal = False
+        self.detail_study = None
+
     def clear_form(self):
         """Limpia el formulario"""
         self.form_patient_id = ""
@@ -152,18 +176,35 @@ class MedicalStudyState(rx.State):
         self.message = ""
 
     async def handle_upload(self, files: list[rx.UploadFile]):
-        """Maneja la carga de archivos"""
+        """
+        Maneja la información de archivos seleccionados.
+        NOTA: El archivo físico NO se copia hasta que rx.upload_files() se ejecuta.
+        Aquí solo guardamos la metadata para mostrar en la UI.
+        """
+        print("📁 DEBUG UPLOAD: handle_upload llamado")
+        print(f"📁 DEBUG UPLOAD: files recibidos: {len(files)} archivo(s)")
+
+        # rx.upload_files devuelve una lista con información de archivos
         if not files:
+            print("⚠️ DEBUG UPLOAD: No hay archivos en la lista")
             return
 
-        # Reflex upload devuelve una lista, tomamos el primer archivo
+        # Obtener el primer archivo
         file = files[0]
+        print(f"📁 DEBUG UPLOAD: Archivo seleccionado: {file.filename}")
+        print(f"📁 DEBUG UPLOAD: Tamaño: {file.size} bytes")
+        print(f"📁 DEBUG UPLOAD: Tipo: {file.content_type}")
 
-        # Guardar información del archivo en el estado
-        self.uploaded_files = [file.filename]
-        self.file_name = file.filename or "archivo_sin_nombre"
-        self.file_size = file.size or 0
+        # Guardar solo la información del archivo
+        # El archivo físico se copiará automáticamente al directorio uploaded_files/
+        # cuando se ejecute rx.upload_files() (que ocurre ANTES de este handler)
+        self.uploaded_files = [file.filename]  # Guardar solo el nombre/ruta relativa
+        self.file_name = file.filename
+        self.file_size = file.size
         self.file_type = file.content_type or "application/octet-stream"
+
+        print("✅ DEBUG UPLOAD: Información guardada")
+        print("✅ DEBUG UPLOAD: Se copiará a uploaded_files/ al guardar el estudio")
 
     def remove_uploaded_file(self):
         """Elimina el archivo subido antes de guardar"""
@@ -215,19 +256,67 @@ class MedicalStudyState(rx.State):
                 if self.uploaded_files:
                     from pathlib import Path
 
-                    upload_file = Path(self.uploaded_files[0])
+                    # El archivo fue guardado por rx.upload_files()
+                    # file_path puede ser solo el nombre o incluir "uploaded_files/"
+                    file_path = self.uploaded_files[0]
 
-                    if upload_file.exists():
+                    # Probar diferentes ubicaciones
+                    cwd = Path.cwd()
+
+                    # Opción 1: Ruta directa desde CWD (si incluye uploaded_files/)
+                    option1 = cwd / file_path
+                    # Opción 2: Dentro del directorio de uploads
+                    option2 = cwd / rx.get_upload_dir() / file_path
+                    # Opción 3: Solo el nombre del archivo en uploads
+                    option3 = cwd / rx.get_upload_dir() / Path(file_path).name
+
+                    print("🔍 DEBUG: Intentando ubicar archivo...")
+                    print(f"🔍 DEBUG: CWD: {cwd}")
+                    print(f"🔍 DEBUG: Upload dir: {rx.get_upload_dir()}")
+                    print(f"🔍 DEBUG: File path original: {file_path}")
+                    print(f"🔍 DEBUG: Opción 1: {option1} - Existe: {option1.exists()}")
+                    print(f"🔍 DEBUG: Opción 2: {option2} - Existe: {option2.exists()}")
+                    print(f"🔍 DEBUG: Opción 3: {option3} - Existe: {option3.exists()}")
+
+                    # Encontrar el archivo
+                    upload_file = None
+                    if option1.exists():
+                        upload_file = option1
+                        print("✅ DEBUG: Usando opción 1")
+                    elif option2.exists():
+                        upload_file = option2
+                        print("✅ DEBUG: Usando opción 2")
+                    elif option3.exists():
+                        upload_file = option3
+                        print("✅ DEBUG: Usando opción 3")
+
+                    if upload_file:
                         with open(upload_file, "rb") as f:
-                            MedicalStudyService.upload_file(
+                            result = MedicalStudyService.upload_file(
                                 session=session,
                                 study_id=study.id,
                                 file_content=f,
                                 file_name=self.file_name,
                                 file_type=self.file_type,
                             )
+                            print(f"✅ DEBUG: Archivo guardado en: {result.file_path}")
+                            self.message = f"Estudio '{self.form_study_name}' creado exitosamente con archivo adjunto"
+                    else:
+                        print("⚠️ DEBUG: Archivo NO encontrado - guardando estudio sin archivo")
+                        # Listar archivos en el directorio de uploads para debug
+                        upload_dir = cwd / rx.get_upload_dir()
+                        if upload_dir.exists():
+                            files_in_dir = list(upload_dir.iterdir())
+                            print(
+                                f"📂 DEBUG: Archivos en {upload_dir}: {len(files_in_dir)} archivos"
+                            )
+                            for f in files_in_dir[:5]:
+                                print(f"  - {f.name}")
+                        self.message = f"Estudio '{self.form_study_name}' creado exitosamente (sin archivo adjunto - funcionalidad en desarrollo)"
+                else:
+                    print("ℹ️ DEBUG: No hay archivos para subir")
+                    self.message = f"Estudio '{self.form_study_name}' creado exitosamente"
 
-                self.message = f"Estudio '{self.form_study_name}' creado exitosamente"
                 self.message_type = "success"
                 self.close_new_study_modal()
                 self.load_studies(self.selected_patient_id)
@@ -286,19 +375,43 @@ class MedicalStudyState(rx.State):
                 if self.uploaded_files:
                     from pathlib import Path
 
-                    upload_file = Path(self.uploaded_files[0])
+                    # El archivo fue guardado por rx.upload_files() en el directorio de uploads
+                    file_path = self.uploaded_files[0]
+                    upload_dir = Path.cwd() / rx.get_upload_dir()
+                    upload_file = upload_dir / file_path
+
+                    print(f"🔍 DEBUG UPDATE: Buscando archivo en: {upload_file}")
+                    print(f"🔍 DEBUG UPDATE: Upload dir: {upload_dir}")
+                    print(f"🔍 DEBUG UPDATE: ¿Archivo existe?: {upload_file.exists()}")
 
                     if upload_file.exists():
                         with open(upload_file, "rb") as f:
-                            MedicalStudyService.upload_file(
+                            result = MedicalStudyService.upload_file(
                                 session=session,
                                 study_id=study.id,
                                 file_content=f,
                                 file_name=self.file_name,
                                 file_type=self.file_type,
                             )
+                            print(f"✅ DEBUG UPDATE: Archivo guardado en: {result.file_path}")
+                            self.message = f"Estudio '{self.form_study_name}' actualizado exitosamente con nuevo archivo"
+                    else:
+                        print(
+                            "⚠️ DEBUG UPDATE: Archivo NO encontrado - guardando estudio sin nuevo archivo"
+                        )
+                        # Listar archivos en el directorio de uploads para debug
+                        if upload_dir.exists():
+                            files_in_dir = list(upload_dir.iterdir())
+                            print(
+                                f"📂 DEBUG UPDATE: Archivos en {upload_dir}: {len(files_in_dir)} archivos"
+                            )
+                            for f in files_in_dir[:5]:
+                                print(f"  - {f.name}")
+                        self.message = f"Estudio '{self.form_study_name}' actualizado exitosamente (sin archivo nuevo - funcionalidad en desarrollo)"
+                else:
+                    print("ℹ️ DEBUG UPDATE: No hay archivos para subir (uploaded_files está vacío)")
+                    self.message = f"Estudio '{self.form_study_name}' actualizado exitosamente"
 
-                self.message = f"Estudio '{self.form_study_name}' actualizado exitosamente"
                 self.message_type = "success"
                 self.close_new_study_modal()
                 self.load_studies(self.selected_patient_id)
@@ -330,14 +443,6 @@ class MedicalStudyState(rx.State):
         except Exception as e:
             self.message = f"Error al eliminar estudio: {str(e)}"
             self.message_type = "error"
-
-    def view_study(self, study_id: int):
-        """Ver detalles de un estudio"""
-        session = next(get_session())
-        try:
-            self.current_study = session.get(MedicalStudy, study_id)
-        finally:
-            session.close()
 
     def get_patient_name(self, patient_id: int) -> str:
         """Obtiene el nombre del paciente"""
