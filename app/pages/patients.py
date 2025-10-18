@@ -36,7 +36,7 @@ def patient_card(patient) -> rx.Component:
                 rx.hstack(
                     rx.icon("calendar", size=16, color=COLORS["text_secondary"]),
                     rx.text(
-                        f"{patient.age} años",
+                        patient.birth_date,
                         size="2",
                     ),
                     spacing="2",
@@ -79,7 +79,7 @@ def patient_card(patient) -> rx.Component:
                     "Ver Historial",
                     variant="soft",
                     size="2",
-                    on_click=lambda: PatientState.view_patient(patient.id),
+                    on_click=rx.redirect(f"/patients/{patient.id}"),
                 ),
                 rx.button(
                     rx.icon("pen", size=16),

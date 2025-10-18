@@ -6,6 +6,7 @@ from app.pages.consultations import consultations_page
 from app.pages.dashboard import dashboard_page
 from app.pages.login import login_page
 from app.pages.medical_studies import medical_studies_page
+from app.pages.patient_detail import patient_detail_page
 from app.pages.patients import patients_page
 
 # Crear la aplicación
@@ -41,6 +42,13 @@ app.add_page(
     patients_page,
     route="/patients",
     title="Pacientes - Historias Clínicas",
+)
+
+# Página de detalle de paciente
+app.add_page(
+    patient_detail_page,
+    route="/patients/[patient_id]",
+    title="Detalle Paciente - Historias Clínicas",
 )
 
 # Página de consultas médicas
