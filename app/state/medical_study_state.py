@@ -37,6 +37,12 @@ class MedicalStudyState(rx.State):
     form_observations: str = ""
     form_diagnosis: str = ""
 
+    # Archivo adjunto
+    uploaded_files: list[str] = []  # Lista de archivos subidos (rx.upload devuelve lista)
+    file_name: str = ""
+    file_size: int = 0
+    file_type: str = ""
+
     # Mensajes
     message: str = ""
     message_type: str = ""  # "success" o "error"
@@ -103,7 +109,32 @@ class MedicalStudyState(rx.State):
         self.form_results = ""
         self.form_observations = ""
         self.form_diagnosis = ""
+        self.uploaded_files = []
+        self.file_name = ""
+        self.file_size = 0
+        self.file_type = ""
         self.message = ""
+
+    async def handle_upload(self, files: list[rx.UploadFile]):
+        """Maneja la carga de archivos"""
+        if not files:
+            return
+
+        # Reflex upload devuelve una lista, tomamos el primer archivo
+        file = files[0]
+
+        # Guardar información del archivo en el estado
+        self.uploaded_files = [file.filename]
+        self.file_name = file.filename or "archivo_sin_nombre"
+        self.file_size = file.size or 0
+        self.file_type = file.content_type or "application/octet-stream"
+
+    def remove_uploaded_file(self):
+        """Elimina el archivo subido antes de guardar"""
+        self.uploaded_files = []
+        self.file_name = ""
+        self.file_size = 0
+        self.file_type = ""
 
     def create_study(self):
         """Crea un nuevo estudio médico"""
@@ -142,6 +173,23 @@ class MedicalStudyState(rx.State):
 
                 session.add(study)
                 session.commit()
+                session.refresh(study)
+
+                # Subir archivo si existe
+                if self.uploaded_files:
+                    from pathlib import Path
+
+                    upload_file = Path(self.uploaded_files[0])
+
+                    if upload_file.exists():
+                        with open(upload_file, "rb") as f:
+                            MedicalStudyService.upload_file(
+                                session=session,
+                                study_id=study.id,
+                                file_content=f,
+                                file_name=self.file_name,
+                                file_type=self.file_type,
+                            )
 
                 self.message = f"Estudio '{self.form_study_name}' creado exitosamente"
                 self.message_type = "success"
@@ -183,5 +231,22 @@ class MedicalStudyState(rx.State):
         try:
             patient = session.get(Patient, patient_id)
             return patient.full_name if patient else "Desconocido"
+        finally:
+            session.close()
+
+    def download_file(self, study_id: int):
+        """Descarga el archivo de un estudio"""
+        session = next(get_session())
+        try:
+            result = MedicalStudyService.download_file(session, study_id)
+
+            if result:
+                file_path, file_name = result
+                # Usar rx.download para descargar el archivo
+                return rx.download(url=str(file_path), filename=file_name)
+
+        except Exception as e:
+            self.message = f"Error al descargar archivo: {str(e)}"
+            self.message_type = "error"
         finally:
             session.close()

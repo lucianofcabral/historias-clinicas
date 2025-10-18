@@ -108,6 +108,18 @@ def study_card(study) -> rx.Component:
                     size="2",
                     on_click=lambda: MedicalStudyState.view_study(study.id),
                 ),
+                rx.cond(
+                    study.file_path,
+                    rx.button(
+                        rx.icon("download", size=16),
+                        "Descargar",
+                        variant="soft",
+                        color_scheme="green",
+                        size="2",
+                        on_click=lambda: MedicalStudyState.download_file(study.id),
+                    ),
+                    rx.box(),
+                ),
                 rx.button(
                     rx.icon("trash-2", size=16),
                     variant="soft",
@@ -207,6 +219,74 @@ def new_study_modal() -> rx.Component:
                     value=MedicalStudyState.form_diagnosis,
                     on_change=MedicalStudyState.set_form_diagnosis,
                     rows="3",
+                ),
+                # Archivo adjunto
+                rx.text("Archivo Adjunto", size="2", weight="bold"),
+                rx.upload(
+                    rx.vstack(
+                        rx.button(
+                            rx.icon("upload", size=20),
+                            "Seleccionar Archivo",
+                            variant="soft",
+                            color_scheme="blue",
+                        ),
+                        rx.text(
+                            "PDF, imágenes, documentos (máx 50MB)",
+                            size="1",
+                            color=COLORS["text_secondary"],
+                        ),
+                        spacing="2",
+                    ),
+                    id="upload_study_file",
+                    multiple=False,
+                    accept={
+                        "application/pdf": [".pdf"],
+                        "image/*": [".png", ".jpg", ".jpeg"],
+                        "application/msword": [".doc", ".docx"],
+                    },
+                    max_files=1,
+                    max_size=50 * 1024 * 1024,  # 50MB
+                    on_drop=MedicalStudyState.handle_upload(
+                        rx.upload_files(upload_id="upload_study_file")
+                    ),
+                ),
+                # Vista previa del archivo subido
+                rx.cond(
+                    MedicalStudyState.file_name != "",
+                    rx.card(
+                        rx.hstack(
+                            rx.icon("paperclip", size=18, color=COLORS["primary"]),
+                            rx.vstack(
+                                rx.text(
+                                    MedicalStudyState.file_name,
+                                    size="2",
+                                    weight="bold",
+                                ),
+                                rx.text(
+                                    f"{(MedicalStudyState.file_size / 1024).to_string()} KB",
+                                    size="1",
+                                    color=COLORS["text_secondary"],
+                                ),
+                                spacing="1",
+                                align="start",
+                            ),
+                            rx.spacer(),
+                            rx.button(
+                                rx.icon("x", size=16),
+                                on_click=MedicalStudyState.remove_uploaded_file,
+                                variant="ghost",
+                                color_scheme="red",
+                                size="1",
+                            ),
+                            width="100%",
+                            align="center",
+                        ),
+                        style={
+                            "background": COLORS["surface"],
+                            "padding": "0.5rem",
+                        },
+                    ),
+                    rx.box(),
                 ),
                 # Mensaje de error/éxito
                 rx.cond(
