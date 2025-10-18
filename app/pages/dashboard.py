@@ -1,24 +1,58 @@
 """Página principal del Dashboard"""
 
 import reflex as rx
+from sqlmodel import func, select
 
 from app.components.navbar import navbar
 from app.config import COLORS
+from app.database import get_session
+from app.models import MedicalStudy, Patient
 
 
 class DashboardState(rx.State):
     """Estado del dashboard"""
 
     total_patients: int = 0
-    consultations_today: int = 0
-    active_medications: int = 0
+    active_patients: int = 0
+    pending_studies: int = 0
+    recent_patients: list[dict] = []
 
     def on_load(self):
         """Se ejecuta al cargar la página"""
-        # TODO: Cargar estadísticas reales desde la BD
-        self.total_patients = 1000
-        self.consultations_today = 5
-        self.active_medications = 10
+        session = next(get_session())
+
+        # Total de pacientes
+        self.total_patients = session.exec(
+            select(func.count(Patient.id))
+        ).one()
+
+        # Pacientes activos
+        self.active_patients = session.exec(
+            select(func.count(Patient.id)).where(Patient.is_active)
+        ).one()
+
+        # Estudios pendientes
+        self.pending_studies = session.exec(
+            select(func.count(MedicalStudy.id)).where(MedicalStudy.is_pending)
+        ).one()
+
+        # Últimos 5 pacientes registrados
+        recent = session.exec(
+            select(Patient)
+            .where(Patient.is_active)
+            .order_by(Patient.created_at.desc())
+            .limit(5)
+        ).all()
+
+        self.recent_patients = [
+            {
+                "id": p.id,
+                "name": f"{p.first_name} {p.last_name}",
+                "dni": p.dni,
+                "created_at": p.created_at.strftime("%d/%m/%Y"),
+            }
+            for p in recent
+        ]
 
 
 def stat_card(title: str, value: str, icon: str, color: str) -> rx.Component:
@@ -69,20 +103,76 @@ def dashboard_page() -> rx.Component:
                         COLORS["primary"],
                     ),
                     stat_card(
-                        "Consultas Hoy",
-                        DashboardState.consultations_today.to_string(),
-                        "calendar_check",
+                        "Pacientes Activos",
+                        DashboardState.active_patients.to_string(),
+                        "user_check",
                         COLORS["success"],
                     ),
                     stat_card(
-                        "Medicaciones Activas",
-                        DashboardState.active_medications.to_string(),
-                        "pill",
+                        "Estudios Pendientes",
+                        DashboardState.pending_studies.to_string(),
+                        "flask_conical",
                         COLORS["warning"],
                     ),
                     columns="3",
                     spacing="4",
                     width="100%",
+                ),
+                # Últimos pacientes registrados
+                rx.heading(
+                    "Pacientes Registrados Recientemente",
+                    size="6",
+                    color=COLORS["text"],
+                    margin_top="2rem",
+                    margin_bottom="1rem",
+                ),
+                rx.cond(
+                    DashboardState.recent_patients.length() > 0,
+                    rx.vstack(
+                        rx.foreach(
+                            DashboardState.recent_patients,
+                            lambda patient: rx.card(
+                                rx.hstack(
+                                    rx.icon(
+                                        "user",
+                                        size=24,
+                                        color=COLORS["primary"],
+                                    ),
+                                    rx.vstack(
+                                        rx.text(
+                                            patient["name"],
+                                            font_weight="600",
+                                            color=COLORS["text"],
+                                        ),
+                                        rx.text(
+                                            f"DNI: {patient['dni']} • Registrado: {patient['created_at']}",
+                                            font_size="0.875rem",
+                                            color=COLORS["text_secondary"],
+                                        ),
+                                        spacing="1",
+                                        align_items="start",
+                                    ),
+                                    rx.spacer(),
+                                    rx.link(
+                                        rx.button(
+                                            rx.icon("eye", size=16),
+                                            size="2",
+                                            variant="soft",
+                                        ),
+                                        href=f"/patients/{patient['id']}",
+                                    ),
+                                    width="100%",
+                                    align="center",
+                                ),
+                            ),
+                        ),
+                        spacing="3",
+                        width="100%",
+                    ),
+                    rx.text(
+                        "No hay pacientes registrados aún",
+                        color=COLORS["text_secondary"],
+                    ),
                 ),
                 # Acciones rápidas
                 rx.heading(
@@ -100,16 +190,16 @@ def dashboard_page() -> rx.Component:
                             size="3",
                             color_scheme="blue",
                         ),
-                        href="/patients/new",
+                        href="/patients",
                     ),
                     rx.link(
                         rx.button(
-                            rx.icon("file-text", size=20),
-                            "Nueva Consulta",
+                            rx.icon("flask_conical", size=20),
+                            "Nuevo Estudio",
                             size="3",
                             color_scheme="green",
                         ),
-                        href="/consultations/new",
+                        href="/medical_studies",
                     ),
                     spacing="3",
                 ),
