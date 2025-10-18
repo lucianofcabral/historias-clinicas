@@ -433,7 +433,7 @@ def patient_detail_page() -> rx.Component:
                 rx.button(
                     rx.icon("arrow-left", size=18),
                     "Volver",
-                    on_click=rx.redirect("/patients"),
+                    on_click=rx.call_script("window.history.back()"),
                     variant="soft",
                     size="2",
                 ),
