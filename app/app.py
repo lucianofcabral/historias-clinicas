@@ -2,6 +2,7 @@
 
 import reflex as rx
 
+from app.pages.consultation_detail import consultation_detail_page
 from app.pages.consultations import consultations_page
 from app.pages.dashboard import dashboard_page
 from app.pages.login import login_page
@@ -57,3 +58,12 @@ app.add_page(
     route="/consultations",
     title="Consultas Médicas - Historias Clínicas",
 )
+
+# Página de detalle de consulta
+app.add_page(
+    consultation_detail_page,
+    route="/consultations/[consultation_id]",
+    title="Detalle Consulta - Historias Clínicas",
+)
+
+# Página de estudios médicos
