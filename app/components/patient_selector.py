@@ -1,6 +1,7 @@
 """
 Componente reutilizable para seleccionar pacientes
 """
+
 import reflex as rx
 
 
@@ -14,7 +15,7 @@ def patient_selector(
 ):
     """
     Componente selector de pacientes con formato amigable
-    
+
     Las opciones deben tener formato: "ID: 1 - Nombre Apellido (DNI: 12345678)"
     El valor seleccionado será el string completo, y el callback debe parsear el ID.
 
@@ -39,9 +40,6 @@ def patient_selector(
         width=width,
         required=required,
     )
-
-
-
 
 
 def patient_selector_with_label(

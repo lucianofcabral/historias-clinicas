@@ -1,6 +1,7 @@
 """
 Estado para la página de reportes
 """
+
 import reflex as rx
 from datetime import date, datetime
 from typing import Optional
@@ -107,7 +108,7 @@ class ReportState(rx.State):
                 }
                 for p in patients_db
             ]
-            
+
             # Sincronizar con patients_list para el selector
             self.patients_list = [
                 {
@@ -123,7 +124,11 @@ class ReportState(rx.State):
             opts = []
             pmap = {}
             for p in patients_db:
-                label = f"{p.first_name} {p.last_name} (DNI: {p.dni})" if p.dni else f"{p.first_name} {p.last_name}"
+                label = (
+                    f"{p.first_name} {p.last_name} (DNI: {p.dni})"
+                    if p.dni
+                    else f"{p.first_name} {p.last_name}"
+                )
                 opts.append(label)
                 pmap[label] = p.id
 
@@ -167,8 +172,7 @@ class ReportState(rx.State):
             elif self.selected_report_type == "consultations":
                 if self.selected_format == "pdf":
                     content = ReportService.generate_consultations_report_pdf(
-                        start_date=start_date_obj,
-                        end_date=end_date_obj
+                        start_date=start_date_obj, end_date=end_date_obj
                     )
                     filename = f"reporte_consultas_{datetime.now().strftime('%Y%m%d')}.pdf"
                     mime_type = "application/pdf"
@@ -184,7 +188,7 @@ class ReportState(rx.State):
                     content = ReportService.generate_studies_report_excel(
                         study_type=self.selected_study_type if self.selected_study_type else None,
                         start_date=start_date_obj,
-                        end_date=end_date_obj
+                        end_date=end_date_obj,
                     )
                     filename = f"reporte_estudios_{datetime.now().strftime('%Y%m%d')}.xlsx"
                     mime_type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"

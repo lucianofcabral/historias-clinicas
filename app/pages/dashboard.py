@@ -19,12 +19,12 @@ class DashboardState(rx.State):
     critical_studies: int = 0
     total_consultations: int = 0
     consultations_this_month: int = 0
-    
+
     # Listas
     recent_patients: list[dict] = []
     recent_consultations: list[dict] = []
     critical_studies_list: list[dict] = []
-    
+
     # Gráficos
     studies_by_type: list[dict] = []
 
@@ -35,7 +35,7 @@ class DashboardState(rx.State):
         session = next(get_session())
         try:
             # ===== ESTADÍSTICAS PRINCIPALES =====
-            
+
             # Total de pacientes
             self.total_patients = session.exec(select(func.count(Patient.id))).one()
 
@@ -56,10 +56,13 @@ class DashboardState(rx.State):
 
             # Total de consultas
             from app.models import Consultation
+
             self.total_consultations = session.exec(select(func.count(Consultation.id))).one()
 
             # Consultas de este mes
-            first_day_of_month = datetime.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+            first_day_of_month = datetime.now().replace(
+                day=1, hour=0, minute=0, second=0, microsecond=0
+            )
             self.consultations_this_month = session.exec(
                 select(func.count(Consultation.id)).where(
                     Consultation.consultation_date >= first_day_of_month
@@ -68,7 +71,10 @@ class DashboardState(rx.State):
 
             # ===== ÚLTIMOS PACIENTES REGISTRADOS =====
             recent = session.exec(
-                select(Patient).where(Patient.is_active).order_by(Patient.created_at.desc()).limit(5)
+                select(Patient)
+                .where(Patient.is_active)
+                .order_by(Patient.created_at.desc())
+                .limit(5)
             ).all()
 
             self.recent_patients = [
@@ -119,6 +125,7 @@ class DashboardState(rx.State):
 
             # ===== DISTRIBUCIÓN DE ESTUDIOS POR TIPO =====
             from app.models import StudyType
+
             study_counts = []
             for study_type in StudyType:
                 count = session.exec(
@@ -127,11 +134,13 @@ class DashboardState(rx.State):
                     )
                 ).one()
                 if count > 0:
-                    study_counts.append({
-                        "type": study_type.value,
-                        "count": count,
-                    })
-            
+                    study_counts.append(
+                        {
+                            "type": study_type.value,
+                            "count": count,
+                        }
+                    )
+
             self.studies_by_type = sorted(study_counts, key=lambda x: x["count"], reverse=True)
 
         finally:
@@ -249,7 +258,11 @@ def dashboard_page() -> rx.Component:
                                     lambda study: rx.card(
                                         rx.vstack(
                                             rx.hstack(
-                                                rx.icon("triangle_alert", size=20, color=COLORS["danger"]),
+                                                rx.icon(
+                                                    "triangle_alert",
+                                                    size=20,
+                                                    color=COLORS["danger"],
+                                                ),
                                                 rx.text(
                                                     study["patient_name"],
                                                     font_weight="600",

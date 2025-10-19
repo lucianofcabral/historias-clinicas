@@ -484,7 +484,7 @@ def medical_studies_section() -> rx.Component:
                 align="center",
             ),
             rx.divider(),
-                rx.cond(
+            rx.cond(
                 PatientDetailState.studies.length() > 0,
                 rx.vstack(
                     rx.foreach(PatientDetailState.studies, study_item_with_attachments),

@@ -137,6 +137,7 @@ class PatientDetailState(rx.State):
 
             # Usar el servicio para obtener la ruta y nombre del archivo
             from app.services import MedicalStudyService
+
             result = MedicalStudyService.download_file(session, study_id)
 
             if not result:
@@ -159,6 +160,7 @@ class PatientDetailState(rx.State):
         except Exception as e:
             print(f"❌ Error en download_study_file: {e}")
             import traceback
+
             traceback.print_exc()
         finally:
             session.close()

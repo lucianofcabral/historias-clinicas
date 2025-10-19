@@ -49,15 +49,8 @@ class MedicalStudyState(rx.State):
     form_observations: str = ""
     form_diagnosis: str = ""
 
-    # Archivo adjunto
-    uploaded_files: list[str] = []  # Lista de archivos subidos (rx.upload devuelve lista)
-    file_name: str = ""
-    file_size: int = 0
-    file_type: str = ""
-
-    # Archivo existente (para modo edición)
-    existing_file_name: str = ""
-    existing_file_path: str = ""
+    # Archivos adjuntos (múltiples)
+    uploaded_files: list[dict] = []  # Lista de archivos: [{"data": base64, "name": str, "size": int, "type": str}]
 
     # Mensajes
     message: str = ""
@@ -258,11 +251,8 @@ class MedicalStudyState(rx.State):
             self.form_observations = study.observations or ""
             self.form_diagnosis = study.diagnosis or ""
 
-            # No cargamos el archivo existente para edición
+            # No cargamos los archivos existentes para edición
             self.uploaded_files = []
-            self.file_name = ""
-            self.file_size = 0
-            self.file_type = ""
 
             self.show_new_study_modal = True
         finally:
@@ -301,15 +291,12 @@ class MedicalStudyState(rx.State):
         self.form_observations = ""
         self.form_diagnosis = ""
         self.uploaded_files = []
-        self.file_name = ""
-        self.file_size = 0
-        self.file_type = ""
         self.message = ""
 
     async def handle_upload(self, files: list[rx.UploadFile]):
         """
-        Maneja la carga de archivos seleccionados.
-        Lee el contenido del archivo y lo guarda temporalmente en memoria.
+        Maneja la carga de múltiples archivos seleccionados.
+        Lee el contenido de cada archivo y lo guarda temporalmente en memoria.
         """
         print("📁 DEBUG UPLOAD: handle_upload llamado")
         print(f"📁 DEBUG UPLOAD: files recibidos: {len(files)} archivo(s)")
@@ -318,37 +305,39 @@ class MedicalStudyState(rx.State):
             print("⚠️ DEBUG UPLOAD: No hay archivos en la lista")
             return
 
-        # Obtener el primer archivo
-        file = files[0]
-        print(f"📁 DEBUG UPLOAD: Archivo seleccionado: {file.filename}")
-        print(f"📁 DEBUG UPLOAD: Tamaño: {file.size} bytes")
-        print(f"📁 DEBUG UPLOAD: Tipo: {file.content_type}")
+        import base64
 
-        # Leer el contenido del archivo
-        try:
-            file_data = await file.read()
-            print(f"✅ DEBUG UPLOAD: Contenido leído: {len(file_data)} bytes")
+        # Procesar todos los archivos
+        uploaded_list = []
+        for idx, file in enumerate(files):
+            print(f"📁 DEBUG UPLOAD [{idx+1}/{len(files)}]: Procesando {file.filename}")
+            print(f"📁 DEBUG UPLOAD: Tamaño: {file.size} bytes")
+            print(f"📁 DEBUG UPLOAD: Tipo: {file.content_type}")
 
-            # Guardar el contenido en base64 para poder usarlo después
-            import base64
+            try:
+                file_data = await file.read()
+                print(f"✅ DEBUG UPLOAD: Contenido leído: {len(file_data)} bytes")
 
-            self.uploaded_files = [base64.b64encode(file_data).decode("utf-8")]
-            self.file_name = file.filename
-            self.file_size = file.size or len(file_data)
-            self.file_type = file.content_type or "application/octet-stream"
+                uploaded_list.append({
+                    "data": base64.b64encode(file_data).decode("utf-8"),
+                    "name": file.filename,
+                    "size": file.size or len(file_data),
+                    "type": file.content_type or "application/octet-stream",
+                })
+                print(f"✅ DEBUG UPLOAD: Archivo {file.filename} cargado correctamente")
+            except Exception as e:
+                print(f"❌ DEBUG UPLOAD: Error al leer archivo {file.filename}: {e}")
+                self.message = f"Error al cargar archivo {file.filename}: {str(e)}"
+                self.message_type = "error"
 
-            print("✅ DEBUG UPLOAD: Archivo cargado y listo para guardar")
-        except Exception as e:
-            print(f"❌ DEBUG UPLOAD: Error al leer archivo: {e}")
-            self.message = f"Error al cargar archivo: {str(e)}"
-            self.message_type = "error"
+        self.uploaded_files = uploaded_list
+        print(f"✅ DEBUG UPLOAD: Total {len(uploaded_list)} archivos listos para guardar")
 
-    def remove_uploaded_file(self):
-        """Elimina el archivo subido antes de guardar"""
-        self.uploaded_files = []
-        self.file_name = ""
-        self.file_size = 0
-        self.file_type = ""
+    def remove_uploaded_file(self, index: int):
+        """Elimina un archivo subido por índice"""
+        if 0 <= index < len(self.uploaded_files):
+            removed = self.uploaded_files.pop(index)
+            print(f"🗑️ Archivo eliminado: {removed['name']}")
 
     def create_study(self):
         """Crea un nuevo estudio médico"""
@@ -475,36 +464,42 @@ class MedicalStudyState(rx.State):
                 session.add(study)
                 session.commit()
 
-                # Subir nuevo archivo si existe
-                if self.uploaded_files and self.uploaded_files[0]:
+                # Subir nuevos archivos si existen (soporte para múltiples archivos)
+                if self.uploaded_files:
                     import base64
                     from io import BytesIO
 
-                    print("📤 DEBUG UPDATE: Procesando archivo cargado...")
+                    print(f"📤 DEBUG UPDATE: Procesando {len(self.uploaded_files)} archivo(s)...")
 
-                    try:
-                        # Decodificar el contenido desde base64
-                        file_data = base64.b64decode(self.uploaded_files[0])
-                        file_io = BytesIO(file_data)
+                    files_saved = 0
+                    for idx, file_info in enumerate(self.uploaded_files):
+                        try:
+                            # Decodificar el contenido desde base64
+                            file_data = base64.b64decode(file_info["data"])
+                            file_io = BytesIO(file_data)
 
-                        print(f"✅ DEBUG UPDATE: Contenido decodificado: {len(file_data)} bytes")
+                            print(f"✅ DEBUG UPDATE [{idx+1}/{len(self.uploaded_files)}]: Guardando {file_info['name']} ({len(file_data)} bytes)")
 
-                        result = MedicalStudyService.upload_file(
-                            session=session,
-                            study_id=study.id,
-                            file_content=file_io,
-                            file_name=self.file_name,
-                            file_type=self.file_type,
-                        )
-                        print(f"✅ DEBUG UPDATE: Archivo guardado en: {result.file_path}")
-                        self.message = f"Estudio '{self.form_study_name}' actualizado exitosamente con nuevo archivo"
-                    except Exception as e:
-                        print(f"❌ DEBUG UPDATE: Error al procesar archivo: {e}")
-                        self.message = (
-                            f"Estudio actualizado pero error al guardar archivo: {str(e)}"
-                        )
+                            result = MedicalStudyService.upload_file(
+                                session=session,
+                                study_id=study.id,
+                                file_content=file_io,
+                                file_name=file_info["name"],
+                                file_type=file_info["type"],
+                            )
+                            print(f"✅ DEBUG UPDATE: Archivo guardado en: {result.file_path}")
+                            files_saved += 1
+                        except Exception as e:
+                            print(f"❌ DEBUG UPDATE: Error al procesar {file_info['name']}: {e}")
+
+                    if files_saved == len(self.uploaded_files):
+                        self.message = f"Estudio '{self.form_study_name}' actualizado exitosamente con {files_saved} archivo(s) nuevo(s)"
+                    elif files_saved > 0:
+                        self.message = f"Estudio actualizado con {files_saved}/{len(self.uploaded_files)} archivos guardados"
+                    else:
+                        self.message = f"Estudio actualizado pero error al guardar archivos"
                 else:
-                    print("ℹ️ DEBUG UPDATE: No hay archivos para subir (uploaded_files está vacío)")
+                    print("ℹ️ DEBUG UPDATE: No hay archivos para subir")
                     self.message = f"Estudio '{self.form_study_name}' actualizado exitosamente"
 
                 self.message_type = "success"

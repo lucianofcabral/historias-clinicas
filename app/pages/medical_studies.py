@@ -184,7 +184,12 @@ def detail_modal() -> rx.Component:
                     rx.divider(),
                     # Nombre del estudio
                     rx.vstack(
-                        rx.text("Nombre del Estudio", size="2", weight="bold", color=COLORS["text_secondary"]),
+                        rx.text(
+                            "Nombre del Estudio",
+                            size="2",
+                            weight="bold",
+                            color=COLORS["text_secondary"],
+                        ),
                         rx.heading(MedicalStudyState.detail_study.study_name, size="5"),
                         spacing="1",
                         align="start",
@@ -194,7 +199,12 @@ def detail_modal() -> rx.Component:
                     # Información del estudio
                     rx.grid(
                         rx.vstack(
-                            rx.text("Institución", size="2", weight="bold", color=COLORS["text_secondary"]),
+                            rx.text(
+                                "Institución",
+                                size="2",
+                                weight="bold",
+                                color=COLORS["text_secondary"],
+                            ),
                             rx.text(
                                 rx.cond(
                                     MedicalStudyState.detail_study.institution,
@@ -207,7 +217,12 @@ def detail_modal() -> rx.Component:
                             align="start",
                         ),
                         rx.vstack(
-                            rx.text("Médico Solicitante", size="2", weight="bold", color=COLORS["text_secondary"]),
+                            rx.text(
+                                "Médico Solicitante",
+                                size="2",
+                                weight="bold",
+                                color=COLORS["text_secondary"],
+                            ),
                             rx.text(
                                 rx.cond(
                                     MedicalStudyState.detail_study.requesting_doctor,
@@ -228,7 +243,12 @@ def detail_modal() -> rx.Component:
                     rx.cond(
                         MedicalStudyState.detail_study.results,
                         rx.vstack(
-                            rx.text("Resultados", size="2", weight="bold", color=COLORS["text_secondary"]),
+                            rx.text(
+                                "Resultados",
+                                size="2",
+                                weight="bold",
+                                color=COLORS["text_secondary"],
+                            ),
                             rx.box(
                                 rx.text(
                                     MedicalStudyState.detail_study.results,
@@ -250,7 +270,12 @@ def detail_modal() -> rx.Component:
                     rx.cond(
                         MedicalStudyState.detail_study.diagnosis,
                         rx.vstack(
-                            rx.text("Diagnóstico", size="2", weight="bold", color=COLORS["text_secondary"]),
+                            rx.text(
+                                "Diagnóstico",
+                                size="2",
+                                weight="bold",
+                                color=COLORS["text_secondary"],
+                            ),
                             rx.box(
                                 rx.text(
                                     MedicalStudyState.detail_study.diagnosis,
@@ -272,7 +297,12 @@ def detail_modal() -> rx.Component:
                     rx.cond(
                         MedicalStudyState.detail_study.observations,
                         rx.vstack(
-                            rx.text("Observaciones", size="2", weight="bold", color=COLORS["text_secondary"]),
+                            rx.text(
+                                "Observaciones",
+                                size="2",
+                                weight="bold",
+                                color=COLORS["text_secondary"],
+                            ),
                             rx.box(
                                 rx.text(
                                     MedicalStudyState.detail_study.observations,
@@ -468,72 +498,77 @@ def new_study_modal() -> rx.Component:
                     rows="3",
                 ),
                 # Archivo adjunto
-                rx.text("Archivo Adjunto", size="2", weight="bold"),
+                rx.text("Archivos Adjuntos", size="2", weight="bold"),
                 rx.upload(
                     rx.vstack(
                         rx.button(
                             rx.icon("upload", size=20),
-                            "Seleccionar Archivo",
+                            "Seleccionar Archivos",
                             variant="soft",
                             color_scheme="blue",
                         ),
                         rx.text(
-                            "PDF, imágenes, documentos (máx 50MB)",
+                            "PDF, imágenes, documentos (máx 50MB por archivo)",
                             size="1",
                             color=COLORS["text_secondary"],
                         ),
                         spacing="2",
                     ),
                     id="upload_study_file",
-                    multiple=False,
+                    multiple=True,  # Permitir múltiples archivos
                     accept={
                         "application/pdf": [".pdf"],
                         "image/*": [".png", ".jpg", ".jpeg"],
                         "application/msword": [".doc", ".docx"],
                     },
-                    max_files=1,
-                    max_size=50 * 1024 * 1024,  # 50MB
+                    max_files=10,  # Hasta 10 archivos
+                    max_size=50 * 1024 * 1024,  # 50MB por archivo
                     on_drop=MedicalStudyState.handle_upload(
                         rx.upload_files(upload_id="upload_study_file")
                     ),
                 ),
-                # Vista previa del archivo subido
+                # Vista previa de los archivos subidos
                 rx.cond(
-                    MedicalStudyState.file_name != "",
-                    rx.card(
-                        rx.hstack(
-                            rx.icon("paperclip", size=18, color=COLORS["primary"]),
-                            rx.vstack(
-                                rx.text(
-                                    MedicalStudyState.file_name,
-                                    size="2",
-                                    weight="bold",
+                    MedicalStudyState.uploaded_files.length() > 0,
+                    rx.vstack(
+                        rx.text("Archivos listos para subir:", size="2", weight="bold"),
+                        rx.foreach(
+                            MedicalStudyState.uploaded_files,
+                            lambda file_info, idx: rx.card(
+                                rx.hstack(
+                                    rx.icon("paperclip", size=18, color=COLORS["primary"]),
+                                    rx.vstack(
+                                        rx.text(
+                                            file_info["name"],
+                                            size="2",
+                                            weight="bold",
+                                        ),
+                                        rx.text(
+                                            file_info["type"],
+                                            size="1",
+                                            color=COLORS["text_secondary"],
+                                        ),
+                                        spacing="1",
+                                        align="start",
+                                    ),
+                                    rx.spacer(),
+                                    rx.button(
+                                        rx.icon("x", size=16),
+                                        on_click=MedicalStudyState.remove_uploaded_file(idx),
+                                        variant="ghost",
+                                        color_scheme="red",
+                                        size="1",
+                                    ),
+                                    width="100%",
+                                    align="center",
                                 ),
-                                rx.text(
-                                    f"{(MedicalStudyState.file_size / 1024).to_string()} KB",
-                                    size="1",
-                                    color=COLORS["text_secondary"],
-                                ),
-                                spacing="1",
-                                align="start",
-                            ),
-                            rx.spacer(),
-                            rx.button(
-                                rx.icon("x", size=16),
-                                on_click=MedicalStudyState.remove_uploaded_file,
-                                variant="ghost",
-                                color_scheme="red",
                                 size="1",
+                                variant="surface",
                             ),
-                            width="100%",
-                            align="center",
                         ),
-                        style={
-                            "background": COLORS["surface"],
-                            "padding": "0.5rem",
-                        },
+                        spacing="2",
+                        width="100%",
                     ),
-                    rx.box(),
                 ),
                 # Mensaje de error/éxito
                 rx.cond(

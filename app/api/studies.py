@@ -5,6 +5,7 @@ Este módulo expone un endpoint GET /api/studies/{study_id}/download que valida
 la existencia del estudio y sirve el archivo con StreamingResponse y encabezados
 adecuados. Usa la sesión de la DB desde app.database.get_db_session().
 """
+
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 
@@ -15,7 +16,7 @@ router = APIRouter(prefix="/api/studies", tags=["studies"])
 
 
 @router.get("/{study_id}/download")
-def download_study(study_id: int, session = Depends(get_session)):
+def download_study(study_id: int, session=Depends(get_session)):
     """Descarga segura del archivo asociado a un estudio.
 
     - Valida que el estudio exista
@@ -45,7 +46,7 @@ def download_study(study_id: int, session = Depends(get_session)):
         elif suffix in [".png", ".jpg", ".jpeg", ".gif"]:
             content_type = f"image/{suffix.lstrip('.')}"
 
-        headers = {"Content-Disposition": f"attachment; filename=\"{file_name}\""}
+        headers = {"Content-Disposition": f'attachment; filename="{file_name}"'}
 
         return StreamingResponse(iterfile(), media_type=content_type, headers=headers)
 

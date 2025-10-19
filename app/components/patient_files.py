@@ -158,9 +158,7 @@ def patient_files_section() -> rx.Component:
                 category_tab(
                     "patient", "Documentos del Paciente", PatientFilesState.patient_files.length()
                 ),
-                category_tab(
-                    "study", "Estudios Médicos", PatientFilesState.study_files.length()
-                ),
+                category_tab("study", "Estudios Médicos", PatientFilesState.study_files.length()),
                 category_tab(
                     "consultation", "Consultas", PatientFilesState.consultation_files.length()
                 ),

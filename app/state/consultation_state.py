@@ -66,9 +66,13 @@ class ConsultationState(rx.State):
 
         # Buscar en la lista de pacientes por label (coincidencia exacta)
         for p in self.patients_list:
-            label = f"{p.get('first_name')} {p.get('last_name')} (DNI: {p.get('dni')})" if p.get('dni') else f"{p.get('first_name')} {p.get('last_name')}"
+            label = (
+                f"{p.get('first_name')} {p.get('last_name')} (DNI: {p.get('dni')})"
+                if p.get("dni")
+                else f"{p.get('first_name')} {p.get('last_name')}"
+            )
             if label == val:
-                return int(p.get('id'))
+                return int(p.get("id"))
 
         # Si no se encuentra, intentar extraer dígitos
         import re
@@ -184,7 +188,8 @@ class ConsultationState(rx.State):
         # Formato: "ID: 1 - Juan Pérez (DNI: 12345678)"
         # Generar etiquetas sin exponer el ID interno
         self.patients_options = [
-            f"{p.first_name} {p.last_name} (DNI: {p.dni})" if p.dni
+            f"{p.first_name} {p.last_name} (DNI: {p.dni})"
+            if p.dni
             else f"{p.first_name} {p.last_name}"
             for p in patients
         ]
@@ -222,7 +227,11 @@ class ConsultationState(rx.State):
         matched_label = None
         for p in self.patients_list:
             if p.get("id") == consultation.patient_id:
-                matched_label = f"{p.get('first_name')} {p.get('last_name')} (DNI: {p.get('dni')})" if p.get('dni') else f"{p.get('first_name')} {p.get('last_name')}"
+                matched_label = (
+                    f"{p.get('first_name')} {p.get('last_name')} (DNI: {p.get('dni')})"
+                    if p.get("dni")
+                    else f"{p.get('first_name')} {p.get('last_name')}"
+                )
                 break
 
         self.form_patient_id = matched_label or str(consultation.patient_id)

@@ -85,7 +85,9 @@ class StudyFileService:
     @staticmethod
     def get_files_by_study(session: Session, study_id: int) -> list[StudyFile]:
         """Obtiene todos los archivos de un estudio específico"""
-        statement = select(StudyFile).where(StudyFile.study_id == study_id).order_by(StudyFile.uploaded_at)
+        statement = (
+            select(StudyFile).where(StudyFile.study_id == study_id).order_by(StudyFile.uploaded_at)
+        )
         return list(session.exec(statement).all())
 
     @staticmethod

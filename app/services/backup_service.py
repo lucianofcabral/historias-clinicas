@@ -2,6 +2,7 @@
 Servicio de gestión de backups de la base de datos
 Compatible con SQLite (desarrollo) y PostgreSQL (producción)
 """
+
 from pathlib import Path
 from datetime import datetime
 import shutil
@@ -25,6 +26,7 @@ class BackupService:
         """Detecta el tipo de base de datos en uso"""
         try:
             from app.config import DATABASE_URL
+
             if DATABASE_URL and DATABASE_URL.startswith("postgresql"):
                 return "postgresql"
         except:
@@ -35,19 +37,20 @@ class BackupService:
     def get_db_path() -> Path:
         """Obtiene la ruta del archivo de la base de datos SQLite"""
         return Path.cwd() / "medical_records.db"
-    
+
     @staticmethod
     def get_postgres_config() -> dict:
         """Obtiene la configuración de PostgreSQL desde DATABASE_URL"""
         try:
             from app.config import DATABASE_URL
+
             # Parsear: postgresql://user:password@host:port/database
             url = DATABASE_URL.replace("postgresql://", "")
             user_pass, host_db = url.split("@")
             user, password = user_pass.split(":")
             host_port, database = host_db.split("/")
             host, port = host_port.split(":") if ":" in host_port else (host_port, "5432")
-            
+
             return {
                 "user": user,
                 "password": password,
@@ -70,7 +73,7 @@ class BackupService:
             db_type = BackupService.get_db_type()
             backup_dir = BackupService.get_backup_dir()
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            
+
             if db_type == "sqlite":
                 # Backup de SQLite
                 db_path = BackupService.get_db_path()
@@ -107,59 +110,65 @@ class BackupService:
                     "size_kb": round(file_size, 2),
                     "timestamp": timestamp,
                 }
-            
+
             else:
                 # Backup de PostgreSQL con pg_dump
                 pg_config = BackupService.get_postgres_config()
-                
+
                 if not pg_config:
                     return {
                         "success": False,
                         "message": "No se pudo obtener la configuración de PostgreSQL",
                     }
-                
+
                 backup_name = f"backup_{timestamp}.sql"
                 backup_path = backup_dir / backup_name
-                
+
                 # Comando pg_dump
                 env = os.environ.copy()
                 env["PGPASSWORD"] = pg_config["password"]
-                
+
                 cmd = [
                     "pg_dump",
-                    "-h", pg_config["host"],
-                    "-p", pg_config["port"],
-                    "-U", pg_config["user"],
-                    "-d", pg_config["database"],
-                    "-F", "c",  # Custom format (comprimido)
-                    "-f", str(backup_path),
+                    "-h",
+                    pg_config["host"],
+                    "-p",
+                    pg_config["port"],
+                    "-U",
+                    pg_config["user"],
+                    "-d",
+                    pg_config["database"],
+                    "-F",
+                    "c",  # Custom format (comprimido)
+                    "-f",
+                    str(backup_path),
                 ]
-                
+
                 result = subprocess.run(
                     cmd,
                     env=env,
                     capture_output=True,
                     text=True,
                 )
-                
+
                 if result.returncode != 0:
                     return {
                         "success": False,
                         "message": f"Error en pg_dump: {result.stderr}",
                     }
-                
+
                 # Crear ZIP del dump
                 zip_name = f"backup_{timestamp}.zip"
                 zip_path = backup_dir / zip_name
-                
+
                 with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zipf:
                     zipf.write(backup_path, backup_name)
-                
+
                 # Eliminar el archivo .sql sin comprimir
                 backup_path.unlink()
-                
+
                 file_size = zip_path.stat().st_size / 1024  # KB
-                
+
                 return {
                     "success": True,
                     "message": "Backup PostgreSQL creado exitosamente",
@@ -260,11 +269,16 @@ class BackupService:
                 # Primero, limpiar la base de datos
                 drop_cmd = [
                     "psql",
-                    "-h", pg_config["host"],
-                    "-p", pg_config["port"],
-                    "-U", pg_config["user"],
-                    "-d", "postgres",  # Conectar a postgres para poder dropear la DB
-                    "-c", f"DROP DATABASE IF EXISTS {pg_config['database']}",
+                    "-h",
+                    pg_config["host"],
+                    "-p",
+                    pg_config["port"],
+                    "-U",
+                    pg_config["user"],
+                    "-d",
+                    "postgres",  # Conectar a postgres para poder dropear la DB
+                    "-c",
+                    f"DROP DATABASE IF EXISTS {pg_config['database']}",
                 ]
 
                 subprocess.run(drop_cmd, env=env, capture_output=True)
@@ -272,11 +286,16 @@ class BackupService:
                 # Recrear la base de datos
                 create_cmd = [
                     "psql",
-                    "-h", pg_config["host"],
-                    "-p", pg_config["port"],
-                    "-U", pg_config["user"],
-                    "-d", "postgres",
-                    "-c", f"CREATE DATABASE {pg_config['database']}",
+                    "-h",
+                    pg_config["host"],
+                    "-p",
+                    pg_config["port"],
+                    "-U",
+                    pg_config["user"],
+                    "-d",
+                    "postgres",
+                    "-c",
+                    f"CREATE DATABASE {pg_config['database']}",
                 ]
 
                 subprocess.run(create_cmd, env=env, capture_output=True)
@@ -284,10 +303,14 @@ class BackupService:
                 # Restaurar el dump
                 restore_cmd = [
                     "pg_restore",
-                    "-h", pg_config["host"],
-                    "-p", pg_config["port"],
-                    "-U", pg_config["user"],
-                    "-d", pg_config["database"],
+                    "-h",
+                    pg_config["host"],
+                    "-p",
+                    pg_config["port"],
+                    "-U",
+                    pg_config["user"],
+                    "-d",
+                    pg_config["database"],
                     "-c",  # Clean (drop) database objects before recreating
                     str(temp_path),
                 ]

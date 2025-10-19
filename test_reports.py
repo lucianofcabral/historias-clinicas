@@ -1,6 +1,7 @@
 """
 Script de prueba para generar reportes
 """
+
 from datetime import date
 from app.services.report_service import ReportService
 
@@ -23,6 +24,7 @@ def test_patient_history_pdf():
     except Exception as e:
         print(f"❌ Error: {e}")
         import traceback
+
         traceback.print_exc()
         return False
 
@@ -45,6 +47,7 @@ def test_patient_history_excel():
     except Exception as e:
         print(f"❌ Error: {e}")
         import traceback
+
         traceback.print_exc()
         return False
 
@@ -59,8 +62,7 @@ def test_consultations_report():
         end_date = date(2025, 10, 18)
 
         pdf_bytes = ReportService.generate_consultations_report_pdf(
-            start_date=start_date,
-            end_date=end_date
+            start_date=start_date, end_date=end_date
         )
 
         # Guardar archivo de prueba
@@ -75,6 +77,7 @@ def test_consultations_report():
     except Exception as e:
         print(f"❌ Error: {e}")
         import traceback
+
         traceback.print_exc()
         return False
 
@@ -91,7 +94,7 @@ def test_studies_report():
         excel_bytes = ReportService.generate_studies_report_excel(
             study_type=None,  # Todos los tipos
             start_date=start_date,
-            end_date=end_date
+            end_date=end_date,
         )
 
         # Guardar archivo de prueba
@@ -106,6 +109,7 @@ def test_studies_report():
     except Exception as e:
         print(f"❌ Error: {e}")
         import traceback
+
         traceback.print_exc()
         return False
 
@@ -137,4 +141,3 @@ if __name__ == "__main__":
 
     print(f"\nTotal: {passed}/{total} pruebas pasaron")
     print("=" * 60)
-

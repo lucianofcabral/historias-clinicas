@@ -9,6 +9,7 @@ Interfaz pública:
 Este componente solo construye la UI; la descarga real se hace mediante rx.download
 o mediante un endpoint que implementaremos en `app/services`.
 """
+
 import reflex as rx
 
 from app.config import COLORS

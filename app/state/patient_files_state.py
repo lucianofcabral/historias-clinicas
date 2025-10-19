@@ -1,14 +1,15 @@
 """Estado para gestionar archivos unificados de un paciente"""
 
-import reflex as rx
 from typing import Optional
 
+import reflex as rx
+from pydantic import BaseModel
+
 from app.database import get_session
-from app.models import ConsultationFile, PatientFile, StudyFile
 from app.services import ConsultationFileService, PatientFileService, StudyFileService
 
 
-class UnifiedFile(rx.Base):
+class UnifiedFile(BaseModel):
     """Estructura unificada para representar cualquier tipo de archivo"""
 
     file_id: int
