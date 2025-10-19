@@ -263,12 +263,12 @@ class ConsultationState(rx.State):
             self.error_message = "Consulta no encontrada"
             return
 
+        # Cargar lista de pacientes primero (una sola vez)
         self.load_patients()
         self.editing_consultation_id = consultation_id
 
         # Cargar datos de la consulta en el formulario
         # Como el selector muestra labels, convertimos el patient_id a la etiqueta correspondiente
-        self.load_patients()
         matched_label = None
         for p in self.patients_list:
             if p.get("id") == consultation.patient_id:
@@ -435,7 +435,8 @@ class ConsultationState(rx.State):
             return
 
         try:
-            patient_id = int(self.form_patient_id)
+            # Resolver patient_id desde el label si es necesario
+            patient_id = self._resolve_patient_id_from_form() or int(self.form_patient_id)
             if patient_id <= 0:
                 self.error_message = "El ID del paciente debe ser un número positivo"
                 return
@@ -486,6 +487,36 @@ class ConsultationState(rx.State):
             ConsultationService.update_consultation(
                 session=session, consultation_id=self.editing_consultation_id, **update_data
             )
+
+            # Subir archivos nuevos si existen (soporte para múltiples archivos)
+            if self.uploaded_files:
+                import base64
+                from io import BytesIO
+                from app.services import ConsultationFileService
+
+                print(f"📤 DEBUG UPDATE CONSULTATION: Procesando {len(self.uploaded_files)} archivo(s)...")
+
+                files_saved = 0
+                for idx, file_info in enumerate(self.uploaded_files):
+                    try:
+                        file_data = base64.b64decode(file_info["data"])
+                        file_io = BytesIO(file_data)
+
+                        print(f"✅ DEBUG UPDATE [{idx+1}/{len(self.uploaded_files)}]: Guardando {file_info['name']}")
+
+                        ConsultationFileService.create_file(
+                            session=session,
+                            consultation_id=self.editing_consultation_id,
+                            file_content=file_io,
+                            file_name=file_info["name"],
+                            file_type=file_info["type"],
+                        )
+                        files_saved += 1
+                    except Exception as e:
+                        print(f"❌ DEBUG UPDATE: Error al guardar {file_info['name']}: {e}")
+
+                if files_saved > 0:
+                    print(f"✅ {files_saved} archivo(s) nuevo(s) agregado(s) a la consulta")
 
             self.success_message = "Consulta actualizada exitosamente"
             self.close_new_consultation_modal()
