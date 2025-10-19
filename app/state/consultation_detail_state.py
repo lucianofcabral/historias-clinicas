@@ -3,7 +3,7 @@
 import reflex as rx
 
 from app.database import get_session
-from app.services import ConsultationService, PatientService
+from app.services import ConsultationService, PatientService, ConsultationFileService
 
 
 class ConsultationDetailState(rx.State):
@@ -17,6 +17,9 @@ class ConsultationDetailState(rx.State):
     patient_name: str = ""
     patient_dni: str = ""
     patient_age: int = 0
+
+    # Archivos de la consulta
+    consultation_files: list[dict] = []
 
     # Datos extraídos de la consulta
     consultation_date_str: str = ""
@@ -63,6 +66,23 @@ class ConsultationDetailState(rx.State):
         self.bmi_value = str(consultation.bmi) if consultation.bmi else ""
         self.bmi_category = consultation.bmi_category or ""
 
+        # Cargar archivos de la consulta
+        files = ConsultationFileService.get_files_by_consultation(
+            session, self.current_consultation_id
+        )
+        self.consultation_files = [
+            {
+                "id": f.id,
+                "file_name": f.file_name,
+                "file_type": f.file_type,
+                "file_size": f.file_size,
+                "file_size_mb": round(f.file_size / (1024 * 1024), 2),
+                "uploaded_at": f.uploaded_at.strftime("%Y-%m-%d %H:%M"),
+                "description": f.description or "",
+            }
+            for f in files
+        ]
+
         # Guardar consulta como dict
         self.consultation = {
             "id": consultation.id,
@@ -82,3 +102,14 @@ class ConsultationDetailState(rx.State):
                 consultation.next_visit.strftime("%d/%m/%Y") if consultation.next_visit else ""
             ),
         }
+
+    def download_consultation_file(self, file_id: int):
+        """Descarga un archivo de la consulta"""
+        session = next(get_session())
+        try:
+            file_path, file_name = ConsultationFileService.download_file(session, file_id)
+            print(f"🚀 Descargando: {file_name} ({file_path})")
+            return rx.download(url=f"/api/files/consultation/{file_id}", filename=file_name)
+        except Exception as e:
+            print(f"❌ Error al descargar archivo: {e}")
+            return rx.window_alert(f"Error al descargar archivo: {str(e)}")

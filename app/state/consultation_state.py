@@ -151,10 +151,21 @@ class ConsultationState(rx.State):
         else:
             consultations = ConsultationService.get_all_consultations(session, limit=50)
 
-        self.consultations = [
-            {
+        # Cargar información de pacientes para cada consulta
+        from app.models import Patient
+        
+        self.consultations = []
+        for c in consultations:
+            # Obtener datos del paciente
+            patient = session.get(Patient, c.patient_id)
+            patient_name = f"{patient.first_name} {patient.last_name}" if patient else "Paciente Desconocido"
+            patient_dni = patient.dni if patient else ""
+            
+            self.consultations.append({
                 "id": c.id,
                 "patient_id": c.patient_id,
+                "patient_name": patient_name,
+                "patient_dni": patient_dni,
                 "consultation_date": c.consultation_date.strftime("%Y-%m-%d %H:%M"),
                 "reason": c.reason,
                 "symptoms": c.symptoms or "",
@@ -169,9 +180,7 @@ class ConsultationState(rx.State):
                 "bmi_category": c.bmi_category or "",
                 "has_vital_signs": c.has_vital_signs,
                 "next_visit": c.next_visit.strftime("%Y-%m-%d") if c.next_visit else "",
-            }
-            for c in consultations
-        ]
+            })
 
     def load_patients(self):
         """Carga lista de pacientes para el selector"""

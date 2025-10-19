@@ -395,6 +395,105 @@ def next_visit_card() -> rx.Component:
     )
 
 
+def consultation_files_card() -> rx.Component:
+    """Card con archivos adjuntos de la consulta"""
+    return rx.card(
+        rx.vstack(
+            rx.hstack(
+                rx.icon("paperclip", size=24, color=COLORS["primary"]),
+                rx.heading(
+                    "Archivos Adjuntos",
+                    size="5",
+                ),
+                rx.spacer(),
+                rx.badge(
+                    f"{ConsultationDetailState.consultation_files.length()} archivo(s)",
+                    color_scheme="blue",
+                ),
+                width="100%",
+                align="center",
+            ),
+            rx.divider(margin_y="1rem"),
+            # Lista de archivos
+            rx.cond(
+                ConsultationDetailState.consultation_files.length() > 0,
+                rx.vstack(
+                    rx.foreach(
+                        ConsultationDetailState.consultation_files,
+                        lambda file: rx.card(
+                            rx.hstack(
+                                rx.icon(
+                                    "paperclip",
+                                    size=20,
+                                    color=COLORS["primary"],
+                                ),
+                                rx.vstack(
+                                    rx.text(
+                                        file["file_name"],
+                                        size="3",
+                                        weight="bold",
+                                    ),
+                                    rx.hstack(
+                                        rx.text(
+                                            file["file_type"],
+                                            size="1",
+                                            color=COLORS["text_secondary"],
+                                        ),
+                                        rx.text("•", size="1", color=COLORS["text_secondary"]),
+                                        rx.text(
+                                            f"{file['file_size_mb']} MB",
+                                            size="1",
+                                            color=COLORS["text_secondary"],
+                                        ),
+                                        rx.text("•", size="1", color=COLORS["text_secondary"]),
+                                        rx.text(
+                                            file["uploaded_at"],
+                                            size="1",
+                                            color=COLORS["text_secondary"],
+                                        ),
+                                        spacing="2",
+                                    ),
+                                    spacing="1",
+                                    align="start",
+                                ),
+                                rx.spacer(),
+                                rx.button(
+                                    rx.icon("download", size=16),
+                                    "Descargar",
+                                    size="2",
+                                    variant="soft",
+                                    on_click=lambda: ConsultationDetailState.download_consultation_file(
+                                        file["id"]
+                                    ),
+                                ),
+                                width="100%",
+                                align="center",
+                            ),
+                            size="2",
+                            variant="surface",
+                        ),
+                    ),
+                    spacing="2",
+                    width="100%",
+                ),
+                # Mensaje cuando no hay archivos
+                rx.box(
+                    rx.text(
+                        "No hay archivos adjuntos en esta consulta",
+                        size="3",
+                        color=COLORS["text_secondary"],
+                        text_align="center",
+                    ),
+                    padding="2rem",
+                    width="100%",
+                ),
+            ),
+            spacing="3",
+            width="100%",
+        ),
+    )
+
+
 def consultation_detail_page() -> rx.Component:
     """Página de vista detallada de consulta"""
     return rx.box(
@@ -421,6 +520,8 @@ def consultation_detail_page() -> rx.Component:
                     spacing="6",
                     width="100%",
                 ),
+                # Archivos adjuntos (full width)
+                consultation_files_card(),
                 spacing="4",
                 width="100%",
                 padding_y="2rem",

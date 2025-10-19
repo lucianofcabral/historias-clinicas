@@ -21,10 +21,23 @@ def consultation_card(consultation: dict) -> rx.Component:
                         font_weight="600",
                         color=COLORS["text"],
                     ),
-                    rx.text(
-                        f"Paciente ID: {consultation['patient_id']}",
-                        font_size="0.875rem",
-                        color=COLORS["text_secondary"],
+                    rx.hstack(
+                        rx.icon("user", size=14, color=COLORS["text_secondary"]),
+                        rx.text(
+                            consultation["patient_name"],
+                            font_size="0.875rem",
+                            color=COLORS["text_secondary"],
+                            font_weight="500",
+                        ),
+                        rx.cond(
+                            consultation["patient_dni"] != "",
+                            rx.text(
+                                f"(DNI: {consultation['patient_dni']})",
+                                font_size="0.875rem",
+                                color=COLORS["text_secondary"],
+                            ),
+                        ),
+                        spacing="1",
                     ),
                     spacing="1",
                     align_items="start",
