@@ -40,6 +40,9 @@ class ConsultationState(rx.State):
     patients_list: list[dict] = []
     patients_options: list[str] = []  # Lista de strings formateados (label) para el selector
 
+    # Archivos adjuntos (múltiples)
+    uploaded_files: list[dict] = []  # Lista de archivos: [{"data": base64, "name": str, "size": int, "type": str}]
+
     # Mensajes
     error_message: str = ""
     success_message: str = ""
@@ -194,6 +197,48 @@ class ConsultationState(rx.State):
             for p in patients
         ]
 
+    async def handle_upload(self, files: list[rx.UploadFile]):
+        """
+        Maneja la carga de múltiples archivos seleccionados.
+        Lee el contenido de cada archivo y lo guarda temporalmente en memoria.
+        """
+        print("📁 DEBUG UPLOAD CONSULTATION: handle_upload llamado")
+        print(f"📁 DEBUG UPLOAD: {len(files)} archivo(s) recibidos")
+
+        if not files:
+            print("⚠️ DEBUG UPLOAD: No hay archivos en la lista")
+            return
+
+        import base64
+
+        uploaded_list = []
+        for idx, file in enumerate(files):
+            print(f"📁 DEBUG UPLOAD [{idx+1}/{len(files)}]: Procesando {file.filename}")
+            
+            try:
+                file_data = await file.read()
+                print(f"✅ DEBUG UPLOAD: Contenido leído: {len(file_data)} bytes")
+
+                uploaded_list.append({
+                    "data": base64.b64encode(file_data).decode("utf-8"),
+                    "name": file.filename,
+                    "size": file.size or len(file_data),
+                    "type": file.content_type or "application/octet-stream",
+                })
+                print(f"✅ DEBUG UPLOAD: Archivo {file.filename} cargado correctamente")
+            except Exception as e:
+                print(f"❌ DEBUG UPLOAD: Error al leer archivo {file.filename}: {e}")
+                self.error_message = f"Error al cargar archivo {file.filename}: {str(e)}"
+
+        self.uploaded_files = uploaded_list
+        print(f"✅ DEBUG UPLOAD: Total {len(uploaded_list)} archivos listos para guardar")
+
+    def remove_uploaded_file(self, index: int):
+        """Elimina un archivo subido por índice"""
+        if 0 <= index < len(self.uploaded_files):
+            removed = self.uploaded_files.pop(index)
+            print(f"🗑️ Archivo eliminado: {removed['name']}")
+
     def handle_search_change(self, value: str):
         """Maneja el cambio en el campo de búsqueda y recarga las consultas"""
         self.search_query = value
@@ -271,6 +316,7 @@ class ConsultationState(rx.State):
         self.form_weight = ""
         self.form_height = ""
         self.form_next_visit = ""
+        self.uploaded_files = []
         self.error_message = ""
         self.success_message = ""
 
@@ -322,7 +368,7 @@ class ConsultationState(rx.State):
                 else None
             )
 
-            ConsultationService.create_consultation(
+            consultation = ConsultationService.create_consultation(
                 session=session,
                 patient_id=patient_id,
                 reason=self.form_reason.strip(),
@@ -337,6 +383,36 @@ class ConsultationState(rx.State):
                 height=height,
                 next_visit=next_visit,
             )
+
+            # Subir archivos si existen (soporte para múltiples archivos)
+            if self.uploaded_files:
+                import base64
+                from io import BytesIO
+                from app.services import ConsultationFileService
+
+                print(f"📎 DEBUG CREATE CONSULTATION: Procesando {len(self.uploaded_files)} archivo(s)...")
+
+                files_saved = 0
+                for idx, file_info in enumerate(self.uploaded_files):
+                    try:
+                        file_data = base64.b64decode(file_info["data"])
+                        file_io = BytesIO(file_data)
+
+                        print(f"✅ DEBUG CREATE [{idx+1}/{len(self.uploaded_files)}]: Guardando {file_info['name']}")
+
+                        ConsultationFileService.create_file(
+                            session=session,
+                            consultation_id=consultation.id,
+                            file_content=file_io,
+                            file_name=file_info["name"],
+                            file_type=file_info["type"],
+                        )
+                        files_saved += 1
+                    except Exception as e:
+                        print(f"❌ DEBUG CREATE: Error al guardar {file_info['name']}: {e}")
+
+                if files_saved > 0:
+                    print(f"✅ {files_saved} archivo(s) guardado(s) correctamente")
 
             self.success_message = "Consulta creada exitosamente"
             self.close_new_consultation_modal()
