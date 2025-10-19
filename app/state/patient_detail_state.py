@@ -76,6 +76,11 @@ class PatientDetailState(rx.State):
         finally:
             session.close()
 
+        # Cargar archivos unificados del paciente
+        from app.state.patient_files_state import PatientFilesState
+
+        yield PatientFilesState.load_all_files(self.current_patient_id)
+
     def export_patient_pdf(self):
         """Exporta el historial del paciente a PDF"""
         if not self.current_patient_id:

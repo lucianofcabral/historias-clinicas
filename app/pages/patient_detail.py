@@ -2,9 +2,10 @@
 
 import reflex as rx
 
+from app.components.attachments import attachments_list_component
+from app.components.patient_files import patient_files_section
 from app.config import COLORS
 from app.state.patient_detail_state import PatientDetailState
-from app.components.attachments import attachments_list_component
 
 
 def patient_header() -> rx.Component:
@@ -601,6 +602,8 @@ def patient_detail_page() -> rx.Component:
                     spacing="4",
                     width="100%",
                 ),
+                # Sección de archivos unificada
+                patient_files_section(),
                 spacing="4",
                 width="100%",
                 padding_y="2rem",

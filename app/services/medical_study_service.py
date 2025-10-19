@@ -68,7 +68,10 @@ class MedicalStudyService:
         file_type: str | None = None,
     ) -> MedicalStudy:
         """
-        Sube un archivo al estudio médico.
+        Sube un archivo al estudio médico usando StudyFileService.
+
+        NOTA: Este método mantiene compatibilidad con código legacy.
+        También actualiza campos legacy en MedicalStudy para retrocompatibilidad.
 
         Args:
             session: Sesión de base de datos
@@ -83,29 +86,31 @@ class MedicalStudyService:
         Raises:
             ValueError: Si el estudio no existe
         """
+        from app.services.study_file_service import StudyFileService
+        from io import BytesIO
+
         study = session.get(MedicalStudy, study_id)
         if not study:
             raise ValueError(f"Estudio con ID {study_id} no encontrado")
 
-        # Crear subdirectorio por paciente para organizar archivos
-        patient_dir = STUDIES_PATH / f"patient_{study.patient_id}"
-        patient_dir.mkdir(exist_ok=True)
+        # Leer contenido en BytesIO para pasarlo al servicio
+        content = file_content.read()
+        file_io = BytesIO(content)
 
-        # Generar nombre único: estudio_id_timestamp_nombre_original
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        safe_file_name = file_name.replace(" ", "_")
-        unique_file_name = f"study_{study_id}_{timestamp}_{safe_file_name}"
-        file_path = patient_dir / unique_file_name
+        # Crear archivo usando el nuevo servicio
+        study_file = StudyFileService.create_file(
+            session=session,
+            study_id=study_id,
+            file_content=file_io,
+            file_name=file_name,
+            file_type=file_type or "application/octet-stream",
+        )
 
-        # Guardar archivo
-        with open(file_path, "wb") as f:
-            shutil.copyfileobj(file_content, f)
-
-        # Actualizar estudio con información del archivo
-        study.file_name = file_name
-        study.file_path = str(file_path.relative_to(STUDIES_PATH))
-        study.file_type = file_type
-        study.file_size = file_path.stat().st_size
+        # Actualizar campos legacy en MedicalStudy para compatibilidad
+        study.file_name = study_file.file_name
+        study.file_path = study_file.file_path
+        study.file_type = study_file.file_type
+        study.file_size = study_file.file_size
 
         session.add(study)
         session.commit()
@@ -199,6 +204,9 @@ class MedicalStudyService:
         """
         Obtiene la ruta del archivo para descarga.
 
+        NOTA: Prioriza archivos de StudyFile (nueva tabla).
+        Si no hay, intenta usar campos legacy de MedicalStudy.
+
         Args:
             session: Sesión de base de datos
             study_id: ID del estudio
@@ -210,10 +218,20 @@ class MedicalStudyService:
             ValueError: Si el estudio no existe
             FileNotFoundError: Si el archivo no existe en disco
         """
+        from app.services.study_file_service import StudyFileService
+
         study = session.get(MedicalStudy, study_id)
         if not study:
             raise ValueError(f"Estudio con ID {study_id} no encontrado")
 
+        # Prioridad 1: Buscar en StudyFile (nueva tabla)
+        files = StudyFileService.get_files_by_study(session, study_id)
+        if files:
+            # Retornar el primer archivo (o el más reciente)
+            first_file = files[0]
+            return StudyFileService.download_file(session, first_file.id)
+
+        # Prioridad 2: Fallback a campos legacy en MedicalStudy
         if not study.has_files:
             return None
 
