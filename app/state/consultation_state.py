@@ -38,6 +38,7 @@ class ConsultationState(rx.State):
 
     # Pacientes disponibles
     patients_list: list[dict] = []
+    patients_options: list[str] = []  # Lista de strings formateados (label) para el selector
 
     # Mensajes
     error_message: str = ""
@@ -51,6 +52,35 @@ class ConsultationState(rx.State):
     def set_form_patient_id(self, value: str):
         """Setter para form_patient_id"""
         self.form_patient_id = value
+
+    def _resolve_patient_id_from_form(self) -> int:
+        """Intentar resolver el ID numérico a partir del valor mostrado en el selector.
+
+        Busca en patients_list una etiqueta que coincida con el valor actual del formulario.
+        Si no la encuentra, intenta extraer el primer número entero presente en la cadena.
+        Devuelve 0 si no puede resolver.
+        """
+        val = (self.form_patient_id or "").strip()
+        if not val:
+            return 0
+
+        # Buscar en la lista de pacientes por label (coincidencia exacta)
+        for p in self.patients_list:
+            label = f"{p.get('first_name')} {p.get('last_name')} (DNI: {p.get('dni')})" if p.get('dni') else f"{p.get('first_name')} {p.get('last_name')}"
+            if label == val:
+                return int(p.get('id'))
+
+        # Si no se encuentra, intentar extraer dígitos
+        import re
+
+        m = re.search(r"(\d+)", val)
+        if m:
+            try:
+                return int(m.group(1))
+            except ValueError:
+                return 0
+
+        return 0
 
     def set_form_reason(self, value: str):
         """Setter para form_reason"""
@@ -150,6 +180,15 @@ class ConsultationState(rx.State):
             for p in patients
         ]
 
+        # Generar opciones formateadas para el selector con ID visible
+        # Formato: "ID: 1 - Juan Pérez (DNI: 12345678)"
+        # Generar etiquetas sin exponer el ID interno
+        self.patients_options = [
+            f"{p.first_name} {p.last_name} (DNI: {p.dni})" if p.dni
+            else f"{p.first_name} {p.last_name}"
+            for p in patients
+        ]
+
     def handle_search_change(self, value: str):
         """Maneja el cambio en el campo de búsqueda y recarga las consultas"""
         self.search_query = value
@@ -178,7 +217,15 @@ class ConsultationState(rx.State):
         self.editing_consultation_id = consultation_id
 
         # Cargar datos de la consulta en el formulario
-        self.form_patient_id = str(consultation.patient_id)
+        # Como el selector muestra labels, convertimos el patient_id a la etiqueta correspondiente
+        self.load_patients()
+        matched_label = None
+        for p in self.patients_list:
+            if p.get("id") == consultation.patient_id:
+                matched_label = f"{p.get('first_name')} {p.get('last_name')} (DNI: {p.get('dni')})" if p.get('dni') else f"{p.get('first_name')} {p.get('last_name')}"
+                break
+
+        self.form_patient_id = matched_label or str(consultation.patient_id)
         self.form_reason = consultation.reason or ""
         self.form_symptoms = consultation.symptoms or ""
         self.form_diagnosis = consultation.diagnosis or ""
@@ -233,7 +280,8 @@ class ConsultationState(rx.State):
             return
 
         try:
-            patient_id = int(self.form_patient_id)
+            # Resolver si el form contiene una etiqueta
+            patient_id = self._resolve_patient_id_from_form() or int(self.form_patient_id)
             if patient_id <= 0:
                 self.error_message = "El ID del paciente debe ser un número positivo"
                 return

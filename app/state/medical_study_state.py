@@ -29,6 +29,11 @@ class MedicalStudyState(rx.State):
     selected_patient_id: Optional[int] = None
     selected_study_type: Optional[str] = None
 
+    # Lista de pacientes para el selector
+    patients_list: list[dict] = []
+    patients_options: list[str] = []  # Lista de labels para el selector
+    patients_map: dict = {}  # map label -> id
+
     # Edición de estudio
     editing_study_id: Optional[int] = None
 
@@ -70,6 +75,36 @@ class MedicalStudyState(rx.State):
     def set_form_patient_id(self, value: str):
         """Setter para form_patient_id"""
         self.form_patient_id = value
+
+    def _resolve_patient_id_from_form(self) -> int:
+        """Resuelve el ID numérico desde la etiqueta seleccionada en el selector.
+
+        Si el valor de form_patient_id coincide con alguna etiqueta en patients_options,
+        devuelve el id correspondiente. Si el valor es numérico, lo parsea. Si falla,
+        devuelve 0.
+        """
+        val = (self.form_patient_id or "").strip()
+        if not val:
+            return 0
+
+        # Verificar en patients_map
+        if val in self.patients_map:
+            try:
+                return int(self.patients_map[val])
+            except ValueError:
+                return 0
+
+        # Intentar parsear un número dentro de la cadena
+        import re
+
+        m = re.search(r"(\d+)", val)
+        if m:
+            try:
+                return int(m.group(1))
+            except ValueError:
+                return 0
+
+        return 0
 
     def set_form_study_type(self, value: str):
         """Setter para form_study_type"""
@@ -144,14 +179,46 @@ class MedicalStudyState(rx.State):
         finally:
             session.close()
 
+    def load_patients(self):
+        """Carga lista de pacientes activos para el selector"""
+        session = next(get_session())
+        try:
+            statement = select(Patient).where(Patient.is_active == True).order_by(Patient.last_name, Patient.first_name)
+            patients = session.exec(statement).all()
+            self.patients_list = [
+                {
+                    "id": p.id,
+                    "first_name": p.first_name,
+                    "last_name": p.last_name,
+                    "dni": p.dni or "",
+                }
+                for p in patients
+            ]
+
+            # Generar labels y mapa label->id
+            opts = []
+            pmap = {}
+            for p in patients:
+                label = f"{p.first_name} {p.last_name} (DNI: {p.dni})" if p.dni else f"{p.first_name} {p.last_name}"
+                opts.append(label)
+                pmap[label] = p.id
+
+            self.patients_options = opts
+            self.patients_map = pmap
+        finally:
+            session.close()
+
     def open_new_study_modal(self):
         """Abre el modal para crear nuevo estudio"""
+        # Asegurar que las opciones del selector estén cargadas
+        self.load_patients()
         self.editing_study_id = None
         self.show_new_study_modal = True
         self.clear_form()
 
     def open_edit_study_modal(self, study_id: int):
         """Abre el modal para editar un estudio existente"""
+        self.load_patients()
         session = next(get_session())
         try:
             study = session.get(MedicalStudy, study_id)
@@ -162,7 +229,14 @@ class MedicalStudyState(rx.State):
 
             # Cargar datos del estudio en el formulario
             self.editing_study_id = study_id
-            self.form_patient_id = str(study.patient_id)
+            # Convertir patient_id a label si está en el mapa
+            matched_label = None
+            for p in self.patients_list:
+                if p.get("id") == study.patient_id:
+                    matched_label = f"{p.get('first_name')} {p.get('last_name')} (DNI: {p.get('dni')})" if p.get('dni') else f"{p.get('first_name')} {p.get('last_name')}"
+                    break
+
+            self.form_patient_id = matched_label or str(study.patient_id)
             self.form_study_type = study.study_type
             self.form_study_name = study.study_name
             self.form_study_date = str(study.study_date)
@@ -268,16 +342,18 @@ class MedicalStudyState(rx.State):
 
             session = next(get_session())
             try:
-                # Validar que el paciente existe
-                patient = session.get(Patient, int(self.form_patient_id))
+                # Validar que el paciente existe (resolver label a id si aplica)
+                resolved_id = self._resolve_patient_id_from_form() or int(self.form_patient_id)
+                patient = session.get(Patient, resolved_id)
                 if not patient:
                     self.message = f"Paciente con ID {self.form_patient_id} no encontrado"
                     self.message_type = "error"
                     return
 
+                # Crear el estudio en la base de datos
                 study = MedicalStudyService.create_study(
                     session=session,
-                    patient_id=int(self.form_patient_id),
+                    patient_id=resolved_id,
                     study_type=StudyType(self.form_study_type),
                     study_name=self.form_study_name,
                     study_date=date.fromisoformat(self.form_study_date),

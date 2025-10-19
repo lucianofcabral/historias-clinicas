@@ -1,8 +1,9 @@
-"""Página de Gestión de Consultas Médicas"""
+"""Página de gestión de consultas médicas"""
 
 import reflex as rx
 
 from app.components.navbar import navbar
+from app.components.patient_selector import patient_selector_with_label
 from app.config import COLORS
 from app.state.consultation_state import ConsultationState
 
@@ -163,27 +164,14 @@ def new_consultation_modal() -> rx.Component:
                     # Sección: Datos Básicos
                     rx.heading("Datos Básicos", size="5", margin_bottom="0.5rem"),
                     # Paciente
-                    rx.vstack(
-                        rx.text(
-                            "Paciente (ID) *",
-                            font_weight="500",
-                            color=COLORS["text_secondary"],
-                        ),
-                        rx.input(
-                            placeholder="Ingrese ID del paciente",
-                            type="number",
-                            value=ConsultationState.form_patient_id,
-                            on_change=ConsultationState.set_form_patient_id,
-                            width="100%",
-                        ),
-                        rx.text(
-                            "Consejo: Busque el ID del paciente en la lista de pacientes",
-                            font_size="0.75rem",
-                            color=COLORS["text_secondary"],
-                        ),
-                        spacing="1",
-                        align_items="start",
-                        width="100%",
+                    patient_selector_with_label(
+                        label="Paciente",
+                        patients_options=ConsultationState.patients_options,
+                        value=ConsultationState.form_patient_id,
+                        on_change=ConsultationState.set_form_patient_id,
+                        placeholder="Seleccione un paciente...",
+                        required=True,
+                        help_text="Seleccione el paciente para esta consulta",
                     ),
                     # Motivo
                     rx.vstack(

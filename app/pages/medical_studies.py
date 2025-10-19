@@ -3,6 +3,7 @@
 import reflex as rx
 
 from app.components.navbar import navbar
+from app.components.patient_selector import patient_selector_with_label
 from app.config import COLORS
 from app.models import StudyType
 from app.state.medical_study_state import MedicalStudyState
@@ -397,13 +398,15 @@ def new_study_modal() -> rx.Component:
                 margin_bottom="1rem",
             ),
             rx.vstack(
-                # ID del Paciente
-                rx.text("ID del Paciente *", size="2", weight="bold"),
-                rx.input(
-                    placeholder="Ej: 1",
+                # Paciente
+                patient_selector_with_label(
+                    label="Paciente",
+                    patients_options=MedicalStudyState.patients_options,
                     value=MedicalStudyState.form_patient_id,
                     on_change=MedicalStudyState.set_form_patient_id,
-                    type="number",
+                    placeholder="Seleccione un paciente...",
+                    required=True,
+                    help_text="Seleccione el paciente para este estudio",
                 ),
                 # Tipo de estudio
                 rx.text("Tipo de Estudio *", size="2", weight="bold"),

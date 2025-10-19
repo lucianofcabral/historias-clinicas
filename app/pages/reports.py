@@ -2,8 +2,9 @@
 Página de reportes y exportaciones
 """
 import reflex as rx
-from app.state.report_state import ReportState
 from app.components.navbar import navbar
+from app.components.patient_selector import patient_selector_with_label
+from app.state.report_state import ReportState
 
 
 def reports_page() -> rx.Component:
@@ -76,21 +77,14 @@ def reports_page() -> rx.Component:
                         rx.divider(),
 
                         # Selector de paciente
-                        rx.vstack(
-                            rx.text("Seleccionar Paciente:", size="2", weight="bold"),
-                            rx.input(
-                                placeholder="ID del paciente...",
-                                type="number",
-                                on_change=ReportState.set_patient_id_from_string,
-                                width="100%",
-                            ),
-                            rx.text(
-                                "Ingresa el ID del paciente (puedes verlo en la lista de pacientes)",
-                                size="1",
-                                color="gray",
-                            ),
-                            width="100%",
-                            spacing="1",
+                        patient_selector_with_label(
+                            label="Seleccionar Paciente",
+                            patients_options=ReportState.patients_options,
+                            value="",
+                            on_change=ReportState.set_patient_id_from_string,
+                            placeholder="Seleccione un paciente...",
+                            required=True,
+                            help_text="Seleccione el paciente para generar su historial",
                         ),
 
                         # Selector de formato
