@@ -183,7 +183,11 @@ class MedicalStudyState(rx.State):
         """Carga lista de pacientes activos para el selector"""
         session = next(get_session())
         try:
-            statement = select(Patient).where(Patient.is_active).order_by(Patient.last_name, Patient.first_name)
+            statement = (
+                select(Patient)
+                .where(Patient.is_active)
+                .order_by(Patient.last_name, Patient.first_name)
+            )
             patients = session.exec(statement).all()
             self.patients_list = [
                 {
@@ -199,7 +203,11 @@ class MedicalStudyState(rx.State):
             opts = []
             pmap = {}
             for p in patients:
-                label = f"{p.first_name} {p.last_name} (DNI: {p.dni})" if p.dni else f"{p.first_name} {p.last_name}"
+                label = (
+                    f"{p.first_name} {p.last_name} (DNI: {p.dni})"
+                    if p.dni
+                    else f"{p.first_name} {p.last_name}"
+                )
                 opts.append(label)
                 pmap[label] = p.id
 
@@ -233,7 +241,11 @@ class MedicalStudyState(rx.State):
             matched_label = None
             for p in self.patients_list:
                 if p.get("id") == study.patient_id:
-                    matched_label = f"{p.get('first_name')} {p.get('last_name')} (DNI: {p.get('dni')})" if p.get('dni') else f"{p.get('first_name')} {p.get('last_name')}"
+                    matched_label = (
+                        f"{p.get('first_name')} {p.get('last_name')} (DNI: {p.get('dni')})"
+                        if p.get("dni")
+                        else f"{p.get('first_name')} {p.get('last_name')}"
+                    )
                     break
 
             self.form_patient_id = matched_label or str(study.patient_id)
@@ -296,14 +308,12 @@ class MedicalStudyState(rx.State):
 
     async def handle_upload(self, files: list[rx.UploadFile]):
         """
-        Maneja la información de archivos seleccionados.
-        NOTA: El archivo físico NO se copia hasta que rx.upload_files() se ejecuta.
-        Aquí solo guardamos la metadata para mostrar en la UI.
+        Maneja la carga de archivos seleccionados.
+        Lee el contenido del archivo y lo guarda temporalmente en memoria.
         """
         print("📁 DEBUG UPLOAD: handle_upload llamado")
         print(f"📁 DEBUG UPLOAD: files recibidos: {len(files)} archivo(s)")
 
-        # rx.upload_files devuelve una lista con información de archivos
         if not files:
             print("⚠️ DEBUG UPLOAD: No hay archivos en la lista")
             return
@@ -314,16 +324,24 @@ class MedicalStudyState(rx.State):
         print(f"📁 DEBUG UPLOAD: Tamaño: {file.size} bytes")
         print(f"📁 DEBUG UPLOAD: Tipo: {file.content_type}")
 
-        # Guardar solo la información del archivo
-        # El archivo físico se copiará automáticamente al directorio uploaded_files/
-        # cuando se ejecute rx.upload_files() (que ocurre ANTES de este handler)
-        self.uploaded_files = [file.filename]  # Guardar solo el nombre/ruta relativa
-        self.file_name = file.filename
-        self.file_size = file.size
-        self.file_type = file.content_type or "application/octet-stream"
+        # Leer el contenido del archivo
+        try:
+            file_data = await file.read()
+            print(f"✅ DEBUG UPLOAD: Contenido leído: {len(file_data)} bytes")
 
-        print("✅ DEBUG UPLOAD: Información guardada")
-        print("✅ DEBUG UPLOAD: Se copiará a uploaded_files/ al guardar el estudio")
+            # Guardar el contenido en base64 para poder usarlo después
+            import base64
+
+            self.uploaded_files = [base64.b64encode(file_data).decode("utf-8")]
+            self.file_name = file.filename
+            self.file_size = file.size or len(file_data)
+            self.file_type = file.content_type or "application/octet-stream"
+
+            print("✅ DEBUG UPLOAD: Archivo cargado y listo para guardar")
+        except Exception as e:
+            print(f"❌ DEBUG UPLOAD: Error al leer archivo: {e}")
+            self.message = f"Error al cargar archivo: {str(e)}"
+            self.message_type = "error"
 
     def remove_uploaded_file(self):
         """Elimina el archivo subido antes de guardar"""
@@ -374,68 +392,33 @@ class MedicalStudyState(rx.State):
                 session.refresh(study)
 
                 # Subir archivo si existe
-                if self.uploaded_files:
-                    from pathlib import Path
+                if self.uploaded_files and self.uploaded_files[0]:
+                    import base64
+                    from io import BytesIO
 
-                    # El archivo fue guardado por rx.upload_files()
-                    # file_path puede ser solo el nombre o incluir "uploaded_files/"
-                    file_path = self.uploaded_files[0]
+                    print("� DEBUG CREATE: Procesando archivo cargado...")
 
-                    # Probar diferentes ubicaciones
-                    cwd = Path.cwd()
+                    try:
+                        # Decodificar el contenido desde base64
+                        file_data = base64.b64decode(self.uploaded_files[0])
+                        file_io = BytesIO(file_data)
 
-                    # Opción 1: Ruta directa desde CWD (si incluye uploaded_files/)
-                    option1 = cwd / file_path
-                    # Opción 2: Dentro del directorio de uploads
-                    option2 = cwd / rx.get_upload_dir() / file_path
-                    # Opción 3: Solo el nombre del archivo en uploads
-                    option3 = cwd / rx.get_upload_dir() / Path(file_path).name
+                        print(f"✅ DEBUG CREATE: Contenido decodificado: {len(file_data)} bytes")
 
-                    print("🔍 DEBUG: Intentando ubicar archivo...")
-                    print(f"🔍 DEBUG: CWD: {cwd}")
-                    print(f"🔍 DEBUG: Upload dir: {rx.get_upload_dir()}")
-                    print(f"🔍 DEBUG: File path original: {file_path}")
-                    print(f"🔍 DEBUG: Opción 1: {option1} - Existe: {option1.exists()}")
-                    print(f"🔍 DEBUG: Opción 2: {option2} - Existe: {option2.exists()}")
-                    print(f"🔍 DEBUG: Opción 3: {option3} - Existe: {option3.exists()}")
-
-                    # Encontrar el archivo
-                    upload_file = None
-                    if option1.exists():
-                        upload_file = option1
-                        print("✅ DEBUG: Usando opción 1")
-                    elif option2.exists():
-                        upload_file = option2
-                        print("✅ DEBUG: Usando opción 2")
-                    elif option3.exists():
-                        upload_file = option3
-                        print("✅ DEBUG: Usando opción 3")
-
-                    if upload_file:
-                        with open(upload_file, "rb") as f:
-                            result = MedicalStudyService.upload_file(
-                                session=session,
-                                study_id=study.id,
-                                file_content=f,
-                                file_name=self.file_name,
-                                file_type=self.file_type,
-                            )
-                            print(f"✅ DEBUG: Archivo guardado en: {result.file_path}")
-                            self.message = f"Estudio '{self.form_study_name}' creado exitosamente con archivo adjunto"
-                    else:
-                        print("⚠️ DEBUG: Archivo NO encontrado - guardando estudio sin archivo")
-                        # Listar archivos en el directorio de uploads para debug
-                        upload_dir = cwd / rx.get_upload_dir()
-                        if upload_dir.exists():
-                            files_in_dir = list(upload_dir.iterdir())
-                            print(
-                                f"📂 DEBUG: Archivos en {upload_dir}: {len(files_in_dir)} archivos"
-                            )
-                            for f in files_in_dir[:5]:
-                                print(f"  - {f.name}")
-                        self.message = f"Estudio '{self.form_study_name}' creado exitosamente (sin archivo adjunto - funcionalidad en desarrollo)"
+                        result = MedicalStudyService.upload_file(
+                            session=session,
+                            study_id=study.id,
+                            file_content=file_io,
+                            file_name=self.file_name,
+                            file_type=self.file_type,
+                        )
+                        print(f"✅ DEBUG CREATE: Archivo guardado en: {result.file_path}")
+                        self.message = f"Estudio '{self.form_study_name}' creado exitosamente con archivo adjunto"
+                    except Exception as e:
+                        print(f"❌ DEBUG CREATE: Error al procesar archivo: {e}")
+                        self.message = f"Estudio creado pero error al guardar archivo: {str(e)}"
                 else:
-                    print("ℹ️ DEBUG: No hay archivos para subir")
+                    print("ℹ️ DEBUG CREATE: No hay archivos para subir")
                     self.message = f"Estudio '{self.form_study_name}' creado exitosamente"
 
                 self.message_type = "success"
@@ -493,42 +476,33 @@ class MedicalStudyState(rx.State):
                 session.commit()
 
                 # Subir nuevo archivo si existe
-                if self.uploaded_files:
-                    from pathlib import Path
+                if self.uploaded_files and self.uploaded_files[0]:
+                    import base64
+                    from io import BytesIO
 
-                    # El archivo fue guardado por rx.upload_files() en el directorio de uploads
-                    file_path = self.uploaded_files[0]
-                    upload_dir = Path.cwd() / rx.get_upload_dir()
-                    upload_file = upload_dir / file_path
+                    print("📤 DEBUG UPDATE: Procesando archivo cargado...")
 
-                    print(f"🔍 DEBUG UPDATE: Buscando archivo en: {upload_file}")
-                    print(f"🔍 DEBUG UPDATE: Upload dir: {upload_dir}")
-                    print(f"🔍 DEBUG UPDATE: ¿Archivo existe?: {upload_file.exists()}")
+                    try:
+                        # Decodificar el contenido desde base64
+                        file_data = base64.b64decode(self.uploaded_files[0])
+                        file_io = BytesIO(file_data)
 
-                    if upload_file.exists():
-                        with open(upload_file, "rb") as f:
-                            result = MedicalStudyService.upload_file(
-                                session=session,
-                                study_id=study.id,
-                                file_content=f,
-                                file_name=self.file_name,
-                                file_type=self.file_type,
-                            )
-                            print(f"✅ DEBUG UPDATE: Archivo guardado en: {result.file_path}")
-                            self.message = f"Estudio '{self.form_study_name}' actualizado exitosamente con nuevo archivo"
-                    else:
-                        print(
-                            "⚠️ DEBUG UPDATE: Archivo NO encontrado - guardando estudio sin nuevo archivo"
+                        print(f"✅ DEBUG UPDATE: Contenido decodificado: {len(file_data)} bytes")
+
+                        result = MedicalStudyService.upload_file(
+                            session=session,
+                            study_id=study.id,
+                            file_content=file_io,
+                            file_name=self.file_name,
+                            file_type=self.file_type,
                         )
-                        # Listar archivos en el directorio de uploads para debug
-                        if upload_dir.exists():
-                            files_in_dir = list(upload_dir.iterdir())
-                            print(
-                                f"📂 DEBUG UPDATE: Archivos en {upload_dir}: {len(files_in_dir)} archivos"
-                            )
-                            for f in files_in_dir[:5]:
-                                print(f"  - {f.name}")
-                        self.message = f"Estudio '{self.form_study_name}' actualizado exitosamente (sin archivo nuevo - funcionalidad en desarrollo)"
+                        print(f"✅ DEBUG UPDATE: Archivo guardado en: {result.file_path}")
+                        self.message = f"Estudio '{self.form_study_name}' actualizado exitosamente con nuevo archivo"
+                    except Exception as e:
+                        print(f"❌ DEBUG UPDATE: Error al procesar archivo: {e}")
+                        self.message = (
+                            f"Estudio actualizado pero error al guardar archivo: {str(e)}"
+                        )
                 else:
                     print("ℹ️ DEBUG UPDATE: No hay archivos para subir (uploaded_files está vacío)")
                     self.message = f"Estudio '{self.form_study_name}' actualizado exitosamente"
@@ -603,6 +577,7 @@ class MedicalStudyState(rx.State):
             self.message_type = "error"
             print(f"❌ Error: {e}")
             import traceback
+
             traceback.print_exc()
         finally:
             session.close()
