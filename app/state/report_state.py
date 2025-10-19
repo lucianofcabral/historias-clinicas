@@ -30,6 +30,9 @@ class ReportState(rx.State):
 
     # Pacientes para el selector
     patients: list[dict] = []
+    patients_list: list[dict] = []  # Alias para compatibilidad con selector
+    patients_options: list[str] = []  # Lista de labels para el selector
+    patients_map: dict = {}  # mapa label -> id
 
     # Setters explícitos
     def set_selected_report_type(self, value: str):
@@ -50,10 +53,34 @@ class ReportState(rx.State):
 
     def set_patient_id_from_string(self, value: str):
         """Convierte el string del input a int para selected_patient_id"""
-        try:
-            self.selected_patient_id = int(value) if value else 0
-        except ValueError:
+        # El selector puede entregar la etiqueta (label) en vez de un número.
+        # Intentamos resolverla buscando en patients_options.
+        val = (value or "").strip()
+        if not val:
             self.selected_patient_id = 0
+            return
+
+        # Buscar en patients_map
+        if val in self.patients_map:
+            try:
+                self.selected_patient_id = int(self.patients_map[val])
+                return
+            except ValueError:
+                pass
+
+        # Fallback: intentar parsear número en la cadena
+        import re
+
+        m = re.search(r"(\d+)", val)
+        if m:
+            try:
+                self.selected_patient_id = int(m.group(1))
+                return
+            except ValueError:
+                self.selected_patient_id = 0
+                return
+
+        self.selected_patient_id = 0
 
     def set_study_type_from_select(self, value: str):
         """Maneja el cambio de tipo de estudio, convirtiendo 'Todos' a cadena vacía"""
@@ -80,6 +107,28 @@ class ReportState(rx.State):
                 }
                 for p in patients_db
             ]
+            
+            # Sincronizar con patients_list para el selector
+            self.patients_list = [
+                {
+                    "id": p.id,
+                    "first_name": p.first_name,
+                    "last_name": p.last_name,
+                    "dni": p.dni or "",
+                }
+                for p in patients_db
+            ]
+
+            # Generar opciones formateadas para el selector
+            opts = []
+            pmap = {}
+            for p in patients_db:
+                label = f"{p.first_name} {p.last_name} (DNI: {p.dni})" if p.dni else f"{p.first_name} {p.last_name}"
+                opts.append(label)
+                pmap[label] = p.id
+
+            self.patients_options = opts
+            self.patients_map = pmap
 
     def generate_report(self):
         """Genera el reporte según los parámetros seleccionados"""

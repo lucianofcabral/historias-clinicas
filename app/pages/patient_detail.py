@@ -4,6 +4,7 @@ import reflex as rx
 
 from app.config import COLORS
 from app.state.patient_detail_state import PatientDetailState
+from app.components.attachments import attachments_list_component
 
 
 def patient_header() -> rx.Component:
@@ -390,6 +391,42 @@ def study_item(study) -> rx.Component:
     )
 
 
+def study_item_with_attachments(study) -> rx.Component:
+    """Item de estudio que incluye archivos adjuntos si existen (versión reactiva)."""
+
+    # Crear attachments Var como lista reactiva si el estudio tiene file_path
+    # Usar una lista de listas en vez de dicts para evitar problemas con TypedDict en el compilador
+    attachments_var = rx.cond(
+        (study.file_path.is_not_none()) | (study.file_name.is_not_none()),
+        [[study.file_name, study.file_path, study.file_type, study.file_size]],
+        [],
+    )
+
+    # Handler que llama al State para descargar
+    def on_download(path):
+        # path puede ser Var; el State descarga usando el id del estudio
+        return PatientDetailState.download_study_file(study.id)
+
+    return rx.vstack(
+        study_item(study),
+        rx.cond(
+            attachments_var.length() > 0,
+            rx.card(
+                rx.vstack(
+                    rx.text("Archivos adjuntos", size="2", weight="bold"),
+                    attachments_list_component(attachments_var, on_download=on_download),
+                    spacing="2",
+                    width="100%",
+                ),
+                style={"background": "#fbfbff"},
+            ),
+            rx.box(),
+        ),
+        spacing="2",
+        width="100%",
+    )
+
+
 def medical_studies_section() -> rx.Component:
     """Sección de estudios médicos"""
     return rx.card(
@@ -405,10 +442,10 @@ def medical_studies_section() -> rx.Component:
                 align="center",
             ),
             rx.divider(),
-            rx.cond(
+                rx.cond(
                 PatientDetailState.studies.length() > 0,
                 rx.vstack(
-                    rx.foreach(PatientDetailState.studies, study_item),
+                    rx.foreach(PatientDetailState.studies, study_item_with_attachments),
                     spacing="3",
                     width="100%",
                 ),

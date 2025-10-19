@@ -113,3 +113,38 @@ class PatientDetailState(rx.State):
 
         except Exception as e:
             print(f"Error al exportar Excel: {str(e)}")
+
+    def download_study_file(self, study_id: int):
+        """Descarga el archivo adjunto asociado a un estudio.
+
+        Busca el estudio en la base de datos y, si el archivo existe en el directorio de uploads,
+        devuelve `rx.download` con el contenido. En caso contrario intenta abrir la ruta/URL.
+        """
+        try:
+            session = next(get_session())
+            study = session.get(MedicalStudy, study_id)
+            if not study:
+                print(f"Estudio {study_id} no encontrado")
+                return
+
+            file_path = getattr(study, "file_path", None)
+            file_name = getattr(study, "file_name", None) or (file_path and file_path.split("/")[-1])
+            if not file_path:
+                print(f"Estudio {study_id} sin archivo adjunto")
+                return
+
+            # Intentar leer desde el directorio de uploads
+            from pathlib import Path
+
+            upload_dir = Path.cwd() / rx.get_upload_dir()
+            candidate = upload_dir / Path(file_path).name
+            if candidate.exists():
+                with open(candidate, "rb") as f:
+                    data = f.read()
+                return rx.download(data=data, filename=file_name)
+
+            # Fallback: si el archivo se encuentra fuera del directorio de uploads, intentar descargar por URL
+            return rx.download(url=str(file_path), filename=file_name)
+
+        except Exception as e:
+            print(f"Error en download_study_file: {e}")
