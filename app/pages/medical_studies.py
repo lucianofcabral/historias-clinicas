@@ -29,6 +29,86 @@ def study_type_badge(study_type: str) -> rx.Component:
     )
 
 
+def study_files_section() -> rx.Component:
+    """Sección de archivos adjuntos del estudio"""
+    return rx.cond(
+        MedicalStudyState.study_files.length() > 0,
+        rx.vstack(
+            rx.divider(),
+            rx.hstack(
+                rx.icon("paperclip", size=20, color=COLORS["primary"]),
+                rx.text(
+                    "Archivos Adjuntos",
+                    size="3",
+                    weight="bold",
+                ),
+                rx.badge(
+                    f"{MedicalStudyState.study_files.length()} archivo(s)",
+                    color_scheme="blue",
+                ),
+                spacing="2",
+                align="center",
+            ),
+            rx.vstack(
+                rx.foreach(
+                    MedicalStudyState.study_files,
+                    lambda file: rx.card(
+                        rx.hstack(
+                            rx.vstack(
+                                rx.hstack(
+                                    rx.icon("paperclip", size=16, color=COLORS["primary"]),
+                                    rx.text(
+                                        file["file_name"],
+                                        size="2",
+                                        weight="medium",
+                                    ),
+                                    spacing="2",
+                                ),
+                                rx.hstack(
+                                    rx.text(
+                                        file["file_size_kb"],
+                                        size="1",
+                                        color=COLORS["text_secondary"],
+                                    ),
+                                    rx.text("•", size="1", color=COLORS["text_secondary"]),
+                                    rx.text(
+                                        file["created_at"],
+                                        size="1",
+                                        color=COLORS["text_secondary"],
+                                    ),
+                                    spacing="2",
+                                ),
+                                spacing="1",
+                                align="start",
+                            ),
+                            rx.spacer(),
+                            rx.button(
+                                rx.icon("download", size=16),
+                                "Descargar",
+                                variant="soft",
+                                color_scheme="green",
+                                size="2",
+                                on_click=lambda: MedicalStudyState.download_study_file(
+                                    file["id"]
+                                ),
+                            ),
+                            width="100%",
+                            align="center",
+                        ),
+                        size="2",
+                        variant="surface",
+                    ),
+                ),
+                spacing="2",
+                width="100%",
+            ),
+            spacing="3",
+            width="100%",
+        ),
+        rx.box(),
+    )
+
+
 def study_card(study) -> rx.Component:
     """Tarjeta de estudio médico"""
     return rx.card(
@@ -46,6 +126,26 @@ def study_card(study) -> rx.Component:
             ),
             # Nombre del estudio
             rx.heading(study.study_name, size="4", margin_top="0.5rem"),
+            # Información del paciente
+            # Información del paciente
+            rx.cond(
+                MedicalStudyState.studies_patient_info[study.id]["name"],
+                rx.hstack(
+                    rx.icon("user", size=16, color=COLORS["primary"]),
+                    rx.text(
+                        MedicalStudyState.studies_patient_info[study.id]["name"],
+                        size="2",
+                        weight="medium",
+                    ),
+                    rx.text(
+                        f"(DNI: {MedicalStudyState.studies_patient_info[study.id]['dni']})",
+                        size="2",
+                        color=COLORS["text_secondary"],
+                    ),
+                    spacing="2",
+                ),
+                rx.box(),
+            ),
             # Información adicional
             rx.vstack(
                 rx.cond(
@@ -171,10 +271,10 @@ def detail_modal() -> rx.Component:
                 rx.vstack(
                     # Header con tipo y fecha
                     rx.hstack(
-                        study_type_badge(MedicalStudyState.detail_study.study_type),
+                        study_type_badge(MedicalStudyState.detail_study["study_type"]),
                         rx.spacer(),
                         rx.text(
-                            MedicalStudyState.detail_study.study_date.to_string(),
+                            MedicalStudyState.detail_study["study_date"],
                             size="3",
                             weight="bold",
                             color=COLORS["text_secondary"],
@@ -190,7 +290,7 @@ def detail_modal() -> rx.Component:
                             weight="bold",
                             color=COLORS["text_secondary"],
                         ),
-                        rx.heading(MedicalStudyState.detail_study.study_name, size="5"),
+                        rx.heading(MedicalStudyState.detail_study["study_name"], size="5"),
                         spacing="1",
                         align="start",
                         width="100%",
@@ -207,8 +307,8 @@ def detail_modal() -> rx.Component:
                             ),
                             rx.text(
                                 rx.cond(
-                                    MedicalStudyState.detail_study.institution,
-                                    MedicalStudyState.detail_study.institution,
+                                    MedicalStudyState.detail_study["institution"],
+                                    MedicalStudyState.detail_study["institution"],
                                     "No especificado",
                                 ),
                                 size="3",
@@ -225,8 +325,8 @@ def detail_modal() -> rx.Component:
                             ),
                             rx.text(
                                 rx.cond(
-                                    MedicalStudyState.detail_study.requesting_doctor,
-                                    MedicalStudyState.detail_study.requesting_doctor,
+                                    MedicalStudyState.detail_study["requesting_doctor"],
+                                    MedicalStudyState.detail_study["requesting_doctor"],
                                     "No especificado",
                                 ),
                                 size="3",
@@ -241,7 +341,7 @@ def detail_modal() -> rx.Component:
                     rx.divider(),
                     # Resultados
                     rx.cond(
-                        MedicalStudyState.detail_study.results,
+                        MedicalStudyState.detail_study["results"],
                         rx.vstack(
                             rx.text(
                                 "Resultados",
@@ -251,7 +351,7 @@ def detail_modal() -> rx.Component:
                             ),
                             rx.box(
                                 rx.text(
-                                    MedicalStudyState.detail_study.results,
+                                    MedicalStudyState.detail_study["results"],
                                     size="3",
                                     white_space="pre-wrap",
                                 ),
@@ -268,7 +368,7 @@ def detail_modal() -> rx.Component:
                     ),
                     # Diagnóstico
                     rx.cond(
-                        MedicalStudyState.detail_study.diagnosis,
+                        MedicalStudyState.detail_study["diagnosis"],
                         rx.vstack(
                             rx.text(
                                 "Diagnóstico",
@@ -278,7 +378,7 @@ def detail_modal() -> rx.Component:
                             ),
                             rx.box(
                                 rx.text(
-                                    MedicalStudyState.detail_study.diagnosis,
+                                    MedicalStudyState.detail_study["diagnosis"],
                                     size="3",
                                     white_space="pre-wrap",
                                 ),
@@ -295,7 +395,7 @@ def detail_modal() -> rx.Component:
                     ),
                     # Observaciones
                     rx.cond(
-                        MedicalStudyState.detail_study.observations,
+                        MedicalStudyState.detail_study["observations"],
                         rx.vstack(
                             rx.text(
                                 "Observaciones",
@@ -305,7 +405,7 @@ def detail_modal() -> rx.Component:
                             ),
                             rx.box(
                                 rx.text(
-                                    MedicalStudyState.detail_study.observations,
+                                    MedicalStudyState.detail_study["observations"],
                                     size="3",
                                     white_space="pre-wrap",
                                 ),
@@ -320,17 +420,17 @@ def detail_modal() -> rx.Component:
                         ),
                         rx.box(),
                     ),
-                    # Archivo adjunto
+                    # Archivo adjunto (sistema antiguo)
                     rx.cond(
-                        MedicalStudyState.detail_study.file_path,
+                        MedicalStudyState.detail_study["file_path"],
                         rx.vstack(
                             rx.divider(),
                             rx.hstack(
                                 rx.icon("file-text", size=20, color=COLORS["primary"]),
                                 rx.vstack(
-                                    rx.text("Archivo Adjunto", size="2", weight="bold"),
+                                    rx.text("Archivo Adjunto (Sistema Antiguo)", size="2", weight="bold"),
                                     rx.text(
-                                        MedicalStudyState.detail_study.file_name,
+                                        MedicalStudyState.detail_study["file_name"],
                                         size="2",
                                         color=COLORS["text_secondary"],
                                     ),
@@ -345,7 +445,7 @@ def detail_modal() -> rx.Component:
                                     color_scheme="green",
                                     size="2",
                                     on_click=lambda: MedicalStudyState.download_file(
-                                        MedicalStudyState.detail_study.id
+                                        MedicalStudyState.detail_study["id"]
                                     ),
                                 ),
                                 width="100%",
@@ -356,6 +456,8 @@ def detail_modal() -> rx.Component:
                         ),
                         rx.box(),
                     ),
+                    # Archivos adjuntos múltiples (nuevo sistema)
+                    study_files_section(),
                     # Botones de acción
                     rx.divider(),
                     rx.hstack(
@@ -375,7 +477,7 @@ def detail_modal() -> rx.Component:
                             size="3",
                             on_click=[
                                 lambda: MedicalStudyState.open_edit_study_modal(
-                                    MedicalStudyState.detail_study.id
+                                    MedicalStudyState.detail_study["id"]
                                 ),
                                 MedicalStudyState.close_detail_modal,
                             ],
@@ -388,7 +490,7 @@ def detail_modal() -> rx.Component:
                             size="3",
                             on_click=[
                                 lambda: MedicalStudyState.delete_study(
-                                    MedicalStudyState.detail_study.id
+                                    MedicalStudyState.detail_study["id"]
                                 ),
                                 MedicalStudyState.close_detail_modal,
                             ],

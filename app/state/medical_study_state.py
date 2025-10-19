@@ -1,7 +1,7 @@
 """Estado para gestión de estudios médicos"""
 
 from datetime import date
-from typing import Optional
+from typing import Any, Optional
 
 import reflex as rx
 from sqlmodel import select
@@ -17,10 +17,14 @@ class MedicalStudyState(rx.State):
     # Lista de estudios
     studies: list[MedicalStudy] = []
     current_study: Optional[MedicalStudy] = None
+    
+    # Información de pacientes para cada estudio (cache)
+    _studies_patient_info: dict[int, dict[str, str]] = {}
 
     # Vista de detalle
     show_detail_modal: bool = False
-    detail_study: Optional[MedicalStudy] = None
+    detail_study: Optional[dict] = None
+    study_files: list[dict] = []
 
     # Estadísticas
     storage_size_mb: float = 0.0
@@ -51,10 +55,18 @@ class MedicalStudyState(rx.State):
 
     # Archivos adjuntos (múltiples)
     uploaded_files: list[dict] = []  # Lista de archivos: [{"data": base64, "name": str, "size": int, "type": str}]
+    
+    # Archivos del estudio en detalle
+    study_files: list[dict] = []  # Lista de archivos del estudio: [{"id": int, "file_name": str, "file_size": int, "file_type": str, "created_at": str}]
 
     # Mensajes
     message: str = ""
     message_type: str = ""  # "success" o "error"
+    
+    @rx.var
+    def studies_patient_info(self) -> dict[int, dict[str, str]]:
+        """Retorna el diccionario de información de pacientes"""
+        return self._studies_patient_info
 
     # Setters explícitos
     def set_show_new_study_modal(self, value: bool):
@@ -136,12 +148,26 @@ class MedicalStudyState(rx.State):
         session = next(get_session())
         try:
             if patient_id:
-                self.studies = MedicalStudyService.get_studies_by_patient(session, patient_id)
+                studies = MedicalStudyService.get_studies_by_patient(session, patient_id)
                 self.selected_patient_id = patient_id
             else:
                 # Cargar todos los estudios
                 statement = select(MedicalStudy).order_by(MedicalStudy.study_date.desc())
-                self.studies = list(session.exec(statement).all())
+                studies = list(session.exec(statement).all())
+
+            # Limpiar cache anterior
+            self._studies_patient_info = {}
+            
+            # Cachear información del paciente para cada estudio
+            for study in studies:
+                patient = session.get(Patient, study.patient_id)
+                if patient:
+                    self._studies_patient_info[study.id] = {
+                        "name": f"{patient.first_name} {patient.last_name}",
+                        "dni": patient.dni
+                    }
+            
+            self.studies = studies
 
             # Cargar estadísticas de almacenamiento
             bytes_used = MedicalStudyService.get_total_storage_size(session, patient_id)
@@ -168,7 +194,21 @@ class MedicalStudyState(rx.State):
                 statement = statement.where(MedicalStudy.study_type == self.selected_study_type)
 
             statement = statement.order_by(MedicalStudy.study_date.desc())
-            self.studies = list(session.exec(statement).all())
+            studies = list(session.exec(statement).all())
+            
+            # Limpiar cache anterior
+            self._studies_patient_info = {}
+            
+            # Cachear información del paciente para cada estudio
+            for study in studies:
+                patient = session.get(Patient, study.patient_id)
+                if patient:
+                    self._studies_patient_info[study.id] = {
+                        "name": f"{patient.first_name} {patient.last_name}",
+                        "dni": patient.dni
+                    }
+            
+            self.studies = studies
         finally:
             session.close()
 
@@ -269,8 +309,43 @@ class MedicalStudyState(rx.State):
         try:
             study = session.get(MedicalStudy, study_id)
             if study:
-                self.detail_study = study
+                # Obtener datos del paciente
+                patient = session.get(Patient, study.patient_id)
+                
+                # Convertir a diccionario con datos del paciente
+                self.detail_study = {
+                    "id": study.id,
+                    "patient_id": study.patient_id,
+                    "patient_name": f"{patient.first_name} {patient.last_name}" if patient else "",
+                    "patient_dni": patient.dni if patient else "",
+                    "study_type": study.study_type if isinstance(study.study_type, str) else study.study_type.value,
+                    "study_name": study.study_name,
+                    "study_date": study.study_date.strftime("%d/%m/%Y") if study.study_date else "",
+                    "institution": study.institution or "",
+                    "requesting_doctor": study.requesting_doctor or "",
+                    "results": study.results or "",
+                    "diagnosis": study.diagnosis or "",
+                    "observations": study.observations or "",
+                    "file_path": study.file_path or "",
+                    "file_name": study.file_name or "",
+                }
+                
                 self.show_detail_modal = True
+                
+                # Cargar archivos del estudio
+                from app.services import StudyFileService
+                
+                files = StudyFileService.get_files_by_study(session, study_id)
+                self.study_files = [
+                    {
+                        "id": f.id,
+                        "file_name": f.file_name,
+                        "file_size_kb": f"{(f.file_size / 1024):.1f} KB",
+                        "file_type": f.file_type,
+                        "created_at": f.uploaded_at.strftime("%d/%m/%Y %H:%M") if f.uploaded_at else "",
+                    }
+                    for f in files
+                ]
         finally:
             session.close()
 
@@ -278,6 +353,25 @@ class MedicalStudyState(rx.State):
         """Cierra el modal de detalle"""
         self.show_detail_modal = False
         self.detail_study = None
+        self.study_files = []  # Limpiar archivos al cerrar
+    
+    def download_study_file(self, file_id: int):
+        """Descarga un archivo individual del estudio"""
+        session = next(get_session())
+        try:
+            from app.services import StudyFileService
+            
+            file_path, file_name = StudyFileService.download_file(session, file_id)
+            print(f"🚀 Descargando archivo de estudio: {file_name} ({file_path})")
+            
+            # Leer archivo y enviar bytes directamente
+            with open(file_path, "rb") as f:
+                file_data = f.read()
+            
+            return rx.download(data=file_data, filename=file_name)
+        except Exception as e:
+            print(f"❌ Error al descargar archivo: {e}")
+            return rx.window_alert(f"Error al descargar archivo: {str(e)}")
 
     def clear_form(self):
         """Limpia el formulario"""
