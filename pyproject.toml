@@ -15,6 +15,7 @@ dependencies = [
     "argon2-cffi>=25.1.0",
     "openpyxl>=3.1.5",
     "reportlab>=4.4.4",
+    "fastapi>=0.119.0",
 ]
 
 [project.optional-dependencies]

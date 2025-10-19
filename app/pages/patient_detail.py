@@ -371,8 +371,21 @@ def study_item(study) -> rx.Component:
                 ),
                 rx.spacer(),
                 rx.badge(study.study_type, color_scheme="purple", variant="soft"),
+                # Botón de descarga visible si hay archivo
+                rx.cond(
+                    study.file_name.is_not_none(),
+                    rx.button(
+                        rx.icon("download", size=16),
+                        "Descargar archivo",
+                        size="2",
+                        variant="soft",
+                        color_scheme="green",
+                        on_click=PatientDetailState.download_study_file(study.id),
+                    ),
+                    rx.box(),
+                ),
                 width="100%",
-                align="start",
+                align="center",
             ),
             rx.cond(
                 study.results,
@@ -380,6 +393,34 @@ def study_item(study) -> rx.Component:
                     study.results,
                     size="2",
                     color=COLORS["text_secondary"],
+                ),
+                rx.box(),
+            ),
+            # Mostrar información del archivo si existe
+            rx.cond(
+                study.file_name.is_not_none(),
+                rx.hstack(
+                    rx.icon("paperclip", size=14, color=COLORS["primary"]),
+                    rx.text(
+                        study.file_name,
+                        size="2",
+                        color=COLORS["text_secondary"],
+                    ),
+                    rx.text(
+                        "•",
+                        size="2",
+                        color=COLORS["text_secondary"],
+                    ),
+                    rx.text(
+                        rx.cond(
+                            study.file_size,
+                            (study.file_size / 1024).to_string() + " KB",
+                            "Tamaño desconocido",
+                        ),
+                        size="2",
+                        color=COLORS["text_secondary"],
+                    ),
+                    spacing="2",
                 ),
                 rx.box(),
             ),

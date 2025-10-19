@@ -183,7 +183,7 @@ class MedicalStudyState(rx.State):
         """Carga lista de pacientes activos para el selector"""
         session = next(get_session())
         try:
-            statement = select(Patient).where(Patient.is_active == True).order_by(Patient.last_name, Patient.first_name)
+            statement = select(Patient).where(Patient.is_active).order_by(Patient.last_name, Patient.first_name)
             patients = session.exec(statement).all()
             self.patients_list = [
                 {
@@ -576,17 +576,33 @@ class MedicalStudyState(rx.State):
 
     def download_file(self, study_id: int):
         """Descarga el archivo de un estudio"""
+        print(f"🔽 DEBUG: download_file llamado con study_id={study_id}")
         session = next(get_session())
         try:
             result = MedicalStudyService.download_file(session, study_id)
 
             if result:
                 file_path, file_name = result
-                # Usar rx.download para descargar el archivo
-                return rx.download(url=str(file_path), filename=file_name)
+                print(f"✓ Archivo encontrado: {file_name}")
+                print(f"✓ Ruta: {file_path}")
+                print(f"✓ Existe: {file_path.exists()}")
+
+                # Leer archivo y enviar bytes directamente (funciona sin endpoint HTTP)
+                with open(file_path, "rb") as f:
+                    file_data = f.read()
+
+                print(f"✓ Leídos {len(file_data)} bytes")
+                print(f"🚀 Descargando: {file_name}")
+
+                return rx.download(data=file_data, filename=file_name)
+            else:
+                print(f"❌ No se encontró archivo para estudio {study_id}")
 
         except Exception as e:
             self.message = f"Error al descargar archivo: {str(e)}"
             self.message_type = "error"
+            print(f"❌ Error: {e}")
+            import traceback
+            traceback.print_exc()
         finally:
             session.close()

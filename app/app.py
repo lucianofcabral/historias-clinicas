@@ -83,3 +83,8 @@ app.add_page(
 )
 
 # Página de estudios médicos
+
+# NOTA: Los endpoints custom de FastAPI en Reflex requieren acceso a la instancia
+# FastAPI subyacente que no está disponible en tiempo de importación.
+# Por ahora, las descargas de archivos se manejan directamente desde los States
+# usando rx.download(data=bytes), que lee los archivos y los envía al navegador.

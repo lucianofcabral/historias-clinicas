@@ -82,9 +82,9 @@ class MedicalStudy(SQLModel, table=True):
         """Retorna la ruta absoluta del archivo"""
         if not self.file_path:
             return None
-        from app.config import BASE_DIR
+        from app.config import STUDIES_PATH
 
-        return BASE_DIR / self.file_path
+        return STUDIES_PATH / self.file_path
 
     @property
     def file_size_mb(self) -> Optional[float]:
