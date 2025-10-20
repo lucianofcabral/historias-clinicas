@@ -435,15 +435,13 @@ class ConsultationState(rx.State):
                 from app.services import ConsultationFileService
 
                 total_files = len(self.uploaded_files)
-                print(
-                    f"📎 DEBUG CREATE CONSULTATION: Procesando {total_files} archivo(s)..."
-                )
+                print(f"📎 DEBUG CREATE CONSULTATION: Procesando {total_files} archivo(s)...")
 
                 files_saved = 0
                 for idx, file_info in enumerate(self.uploaded_files):
                     # Actualizar progreso
                     self.upload_progress = f"Subiendo archivo {idx + 1} de {total_files}..."
-                    
+
                     try:
                         file_data = base64.b64decode(file_info["data"])
                         file_io = BytesIO(file_data)
@@ -467,11 +465,11 @@ class ConsultationState(rx.State):
                     print(f"✅ {files_saved} archivo(s) guardado(s) correctamente")
 
             self.success_message = "Consulta creada exitosamente"
-            
+
             # Desactivar indicador de carga
             self.is_uploading = False
             self.upload_progress = ""
-            
+
             self.close_new_consultation_modal()
             self.load_consultations()
 
@@ -560,15 +558,13 @@ class ConsultationState(rx.State):
                 from app.services import ConsultationFileService
 
                 total_files = len(self.uploaded_files)
-                print(
-                    f"📤 DEBUG UPDATE CONSULTATION: Procesando {total_files} archivo(s)..."
-                )
+                print(f"📤 DEBUG UPDATE CONSULTATION: Procesando {total_files} archivo(s)...")
 
                 files_saved = 0
                 for idx, file_info in enumerate(self.uploaded_files):
                     # Actualizar progreso
                     self.upload_progress = f"Subiendo archivo {idx + 1} de {total_files}..."
-                    
+
                     try:
                         file_data = base64.b64decode(file_info["data"])
                         file_io = BytesIO(file_data)
@@ -592,11 +588,11 @@ class ConsultationState(rx.State):
                     print(f"✅ {files_saved} archivo(s) nuevo(s) agregado(s) a la consulta")
 
             self.success_message = "Consulta actualizada exitosamente"
-            
+
             # Desactivar indicador de carga
             self.is_uploading = False
             self.upload_progress = ""
-            
+
             self.close_new_consultation_modal()
             self.load_consultations()
 

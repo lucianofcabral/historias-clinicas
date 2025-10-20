@@ -84,12 +84,12 @@ class MedicalStudyState(rx.State):
     def studies_file_count(self) -> dict[int, int]:
         """Retorna el diccionario de conteo de archivos por estudio"""
         return self._studies_file_count
-    
+
     def get_file_count_text(self, study_id: int) -> str:
         """Retorna el texto formateado del conteo de archivos para un estudio"""
         count = self._studies_file_count.get(study_id, 0)
         return f"{count} archivo(s)" if count > 0 else ""
-    
+
     def has_files(self, study_id: int) -> bool:
         """Retorna si un estudio tiene archivos adjuntos"""
         return self._studies_file_count.get(study_id, 0) > 0
@@ -552,11 +552,11 @@ class MedicalStudyState(rx.State):
                     self.message = f"Estudio '{self.form_study_name}' creado exitosamente"
 
                 self.message_type = "success"
-                
+
                 # Desactivar indicador de carga
                 self.is_uploading = False
                 self.upload_progress = ""
-                
+
                 self.close_new_study_modal()
                 self.load_studies(self.selected_patient_id)
             finally:
@@ -628,7 +628,7 @@ class MedicalStudyState(rx.State):
                     for idx, file_info in enumerate(self.uploaded_files):
                         # Actualizar progreso
                         self.upload_progress = f"Subiendo archivo {idx + 1} de {total_files}..."
-                        
+
                         try:
                             # Decodificar el contenido desde base64
                             file_data = base64.b64decode(file_info["data"])
@@ -661,11 +661,11 @@ class MedicalStudyState(rx.State):
                     self.message = f"Estudio '{self.form_study_name}' actualizado exitosamente"
 
                 self.message_type = "success"
-                
+
                 # Desactivar indicador de carga
                 self.is_uploading = False
                 self.upload_progress = ""
-                
+
                 self.close_new_study_modal()
                 self.load_studies(self.selected_patient_id)
             finally:

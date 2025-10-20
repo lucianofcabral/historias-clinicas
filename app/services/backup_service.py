@@ -49,11 +49,7 @@ class BackupService:
             user_pass, host_db = url.split("@")
             user, password = user_pass.split(":")
             host_port, database = host_db.split("/")
-            host, port = (
-                host_port.split(":")
-                if ":" in host_port
-                else (host_port, "5432")
-            )
+            host, port = host_port.split(":") if ":" in host_port else (host_port, "5432")
 
             return {
                 "user": user,
@@ -98,9 +94,7 @@ class BackupService:
                 zip_name = f"backup_{timestamp}.zip"
                 zip_path = backup_dir / zip_name
 
-                with zipfile.ZipFile(
-                    zip_path, "w", zipfile.ZIP_DEFLATED
-                ) as zipf:
+                with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zipf:
                     zipf.write(backup_path, backup_name)
 
                 # Eliminar el archivo .db sin comprimir
@@ -131,10 +125,7 @@ class BackupService:
                 backup_path = backup_dir / backup_name
 
                 # Detectar si PostgreSQL está en Docker
-                is_docker = (
-                    pg_config["host"] == "localhost"
-                    or pg_config["host"] == "127.0.0.1"
-                )
+                is_docker = pg_config["host"] == "localhost" or pg_config["host"] == "127.0.0.1"
 
                 if is_docker:
                     # Usar docker exec para ejecutar pg_dump dentro del contenedor
@@ -198,9 +189,7 @@ class BackupService:
                 zip_name = f"backup_{timestamp}.zip"
                 zip_path = backup_dir / zip_name
 
-                with zipfile.ZipFile(
-                    zip_path, "w", zipfile.ZIP_DEFLATED
-                ) as zipf:
+                with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zipf:
                     zipf.write(backup_path, backup_name)
 
                 # Eliminar el archivo .sql sin comprimir
@@ -294,9 +283,7 @@ class BackupService:
                 # Extraer el dump del ZIP
                 temp_path = backup_dir / "temp_restore.sql"
                 with zipfile.ZipFile(backup_path, "r") as zipf:
-                    sql_files = [
-                        f for f in zipf.namelist() if f.endswith(".sql")
-                    ]
+                    sql_files = [f for f in zipf.namelist() if f.endswith(".sql")]
                     if not sql_files:
                         return {
                             "success": False,
@@ -314,12 +301,7 @@ class BackupService:
 
                 if is_docker:
                     # Copiar el archivo al contenedor
-                    copy_cmd = [
-                        "docker",
-                        "cp",
-                        str(temp_path),
-                        "hc_postgres:/tmp/restore.sql"
-                    ]
+                    copy_cmd = ["docker", "cp", str(temp_path), "hc_postgres:/tmp/restore.sql"]
                     subprocess.run(copy_cmd, capture_output=True)
 
                     # Restaurar con pg_restore desde el contenedor
@@ -346,7 +328,7 @@ class BackupService:
                     # Limpiar archivo temporal del contenedor
                     subprocess.run(
                         ["docker", "exec", "hc_postgres", "rm", "/tmp/restore.sql"],
-                        capture_output=True
+                        capture_output=True,
                     )
 
                 else:
@@ -408,22 +390,16 @@ class BackupService:
             backup_dir = BackupService.get_backup_dir()
             backups = []
 
-            for backup_file in sorted(
-                backup_dir.glob("backup_*.zip"), reverse=True
-            ):
+            for backup_file in sorted(backup_dir.glob("backup_*.zip"), reverse=True):
                 stat = backup_file.stat()
                 size_kb = stat.st_size / 1024
 
                 # Extraer timestamp del nombre del archivo
                 filename = backup_file.name
-                timestamp_str = filename.replace("backup_", "").replace(
-                    ".zip", ""
-                )
+                timestamp_str = filename.replace("backup_", "").replace(".zip", "")
 
                 try:
-                    timestamp = datetime.strptime(
-                        timestamp_str, "%Y%m%d_%H%M%S"
-                    )
+                    timestamp = datetime.strptime(timestamp_str, "%Y%m%d_%H%M%S")
                     formatted_date = timestamp.strftime("%d/%m/%Y %H:%M:%S")
                 except ValueError:
                     formatted_date = "Fecha desconocida"

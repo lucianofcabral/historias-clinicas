@@ -365,7 +365,8 @@ def upload_modal() -> rx.Component:
                     rx.icon("upload", size=16),
                     "Subir Archivos",
                     on_click=PatientFilesState.save_uploaded_files,
-                    disabled=(PatientFilesState.uploaded_files.length() == 0) | PatientFilesState.is_uploading,
+                    disabled=(PatientFilesState.uploaded_files.length() == 0)
+                    | PatientFilesState.is_uploading,
                     loading=PatientFilesState.is_uploading,
                 ),
                 spacing="3",

@@ -45,9 +45,6 @@ def file_count_badge(study) -> rx.Component:
     )
 
 
-
-
-
 def study_files_section() -> rx.Component:
     """Sección de archivos adjuntos del estudio"""
     return rx.cond(

@@ -1,6 +1,7 @@
 """
 Script para probar el servicio de backup con PostgreSQL en Docker
 """
+
 from app.services.backup_service import BackupService
 
 print("🔧 Probando servicio de backup con PostgreSQL...")

@@ -302,14 +302,12 @@ class PatientFilesState(rx.State):
             for idx, file_info in enumerate(self.uploaded_files):
                 # Actualizar progreso
                 self.upload_progress = f"Subiendo archivo {idx + 1} de {total_files}..."
-                
+
                 try:
                     file_data = base64.b64decode(file_info["data"])
                     file_io = BytesIO(file_data)
 
-                    print(
-                        f"📤 DEBUG SAVE [{idx + 1}/{total_files}]: Guardando {file_info['name']}"
-                    )
+                    print(f"📤 DEBUG SAVE [{idx + 1}/{total_files}]: Guardando {file_info['name']}")
                     print(f"📤 DEBUG: Tamaño decodificado: {len(file_data)} bytes")
 
                     PatientFileService.create_file(
@@ -334,9 +332,7 @@ class PatientFilesState(rx.State):
                 self.upload_message = f"✅ {files_saved} archivo(s) subido(s) exitosamente"
                 self.upload_message_type = "success"
             elif files_saved > 0:
-                self.upload_message = (
-                    f"⚠️ {files_saved}/{total_files} archivos guardados"
-                )
+                self.upload_message = f"⚠️ {files_saved}/{total_files} archivos guardados"
                 self.upload_message_type = "success"
             else:
                 self.upload_message = "❌ Error al guardar archivos"
