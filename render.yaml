@@ -1,0 +1,32 @@
+services:
+  # Web Service - Aplicación Reflex
+  - type: web
+    name: hc-app
+    runtime: python
+    plan: free
+    buildCommand: "./build.sh"
+    startCommand: "uv run reflex run --env prod --loglevel info"
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.13.0
+      - key: PORT
+        value: 8000
+      - key: APP_ENV
+        value: production
+      - key: ADMIN_USERNAME
+        value: admin
+      - key: ADMIN_PASSWORD_HASH
+        sync: false  # Se configura manualmente en el dashboard
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: hc-postgres
+          property: connectionString
+
+# PostgreSQL Database
+databases:
+  - name: hc-postgres
+    plan: free
+    databaseName: historia_clinica
+    user: hc_user

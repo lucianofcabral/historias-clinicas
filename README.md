@@ -188,11 +188,31 @@ hc/
 
 - Ver `INSTRUCTIONS.md` para documentación detallada del desarrollo
 - Ver `POSTGRESQL_SETUP_GUIDE.md` para configuración de PostgreSQL con Docker
-- Ver `FLY_DEPLOYMENT_GUIDE.md` para desplegar en Fly.io (GRATIS)
+- Ver `RENDER_DEPLOYMENT_GUIDE.md` para desplegar en Render.com (GRATIS, sin tarjeta)
+- Ver `FLY_DEPLOYMENT_GUIDE.md` para desplegar en Fly.io (requiere tarjeta)
 
 ## 🚀 Despliegue en Producción
 
-Esta aplicación está lista para desplegarse en **Fly.io** completamente gratis.
+### Opción 1: Render.com (RECOMENDADA - Sin Tarjeta) ⭐
+
+**✅ Completamente gratis sin tarjeta de crédito**
+
+Ver la guía completa en [`RENDER_DEPLOYMENT_GUIDE.md`](RENDER_DEPLOYMENT_GUIDE.md)
+
+**Resumen rápido:**
+1. Crear cuenta en https://render.com (sin tarjeta)
+2. Crear PostgreSQL database (1GB gratis)
+3. Crear Web Service desde GitHub
+4. Configurar variables de entorno
+5. Deploy automático!
+
+**Tu app estará en:** `https://tu-app.onrender.com`
+
+⚠️ **Nota:** En tier gratis, la app "duerme" después de 15 min de inactividad. Primera carga tarda ~1 minuto.
+
+---
+
+### Opción 2: Fly.io (Requiere Tarjeta)
 
 Ver la guía completa en [`FLY_DEPLOYMENT_GUIDE.md`](FLY_DEPLOYMENT_GUIDE.md)
 
