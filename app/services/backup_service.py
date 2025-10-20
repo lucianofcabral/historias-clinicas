@@ -49,7 +49,11 @@ class BackupService:
             user_pass, host_db = url.split("@")
             user, password = user_pass.split(":")
             host_port, database = host_db.split("/")
-            host, port = host_port.split(":") if ":" in host_port else (host_port, "5432")
+            host, port = (
+                host_port.split(":")
+                if ":" in host_port
+                else (host_port, "5432")
+            )
 
             return {
                 "user": user,
@@ -94,7 +98,9 @@ class BackupService:
                 zip_name = f"backup_{timestamp}.zip"
                 zip_path = backup_dir / zip_name
 
-                with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zipf:
+                with zipfile.ZipFile(
+                    zip_path, "w", zipfile.ZIP_DEFLATED
+                ) as zipf:
                     zipf.write(backup_path, backup_name)
 
                 # Eliminar el archivo .db sin comprimir
@@ -124,32 +130,63 @@ class BackupService:
                 backup_name = f"backup_{timestamp}.sql"
                 backup_path = backup_dir / backup_name
 
-                # Comando pg_dump
-                env = os.environ.copy()
-                env["PGPASSWORD"] = pg_config["password"]
-
-                cmd = [
-                    "pg_dump",
-                    "-h",
-                    pg_config["host"],
-                    "-p",
-                    pg_config["port"],
-                    "-U",
-                    pg_config["user"],
-                    "-d",
-                    pg_config["database"],
-                    "-F",
-                    "c",  # Custom format (comprimido)
-                    "-f",
-                    str(backup_path),
-                ]
-
-                result = subprocess.run(
-                    cmd,
-                    env=env,
-                    capture_output=True,
-                    text=True,
+                # Detectar si PostgreSQL está en Docker
+                is_docker = (
+                    pg_config["host"] == "localhost"
+                    or pg_config["host"] == "127.0.0.1"
                 )
+
+                if is_docker:
+                    # Usar docker exec para ejecutar pg_dump dentro del contenedor
+                    cmd = [
+                        "docker",
+                        "exec",
+                        "hc_postgres",  # Nombre del contenedor
+                        "pg_dump",
+                        "-U",
+                        pg_config["user"],
+                        "-d",
+                        pg_config["database"],
+                        "-F",
+                        "c",  # Custom format (comprimido)
+                    ]
+
+                    result = subprocess.run(
+                        cmd,
+                        capture_output=True,
+                    )
+
+                    if result.returncode == 0:
+                        # Guardar el output en el archivo
+                        backup_path.write_bytes(result.stdout)
+
+                else:
+                    # Comando pg_dump directo (PostgreSQL local)
+                    env = os.environ.copy()
+                    env["PGPASSWORD"] = pg_config["password"]
+
+                    cmd = [
+                        "pg_dump",
+                        "-h",
+                        pg_config["host"],
+                        "-p",
+                        pg_config["port"],
+                        "-U",
+                        pg_config["user"],
+                        "-d",
+                        pg_config["database"],
+                        "-F",
+                        "c",  # Custom format (comprimido)
+                        "-f",
+                        str(backup_path),
+                    ]
+
+                    result = subprocess.run(
+                        cmd,
+                        env=env,
+                        capture_output=True,
+                        text=True,
+                    )
 
                 if result.returncode != 0:
                     return {
@@ -161,7 +198,9 @@ class BackupService:
                 zip_name = f"backup_{timestamp}.zip"
                 zip_path = backup_dir / zip_name
 
-                with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zipf:
+                with zipfile.ZipFile(
+                    zip_path, "w", zipfile.ZIP_DEFLATED
+                ) as zipf:
                     zipf.write(backup_path, backup_name)
 
                 # Eliminar el archivo .sql sin comprimir
@@ -228,7 +267,10 @@ class BackupService:
 
                     # Extraer a un archivo temporal
                     temp_path = backup_dir / "temp_restore.db"
-                    with zipf.open(db_files[0]) as source, open(temp_path, "wb") as target:
+                    with (
+                        zipf.open(db_files[0]) as source,
+                        open(temp_path, "wb") as target,
+                    ):
                         shutil.copyfileobj(source, target)
 
                     # Reemplazar la base de datos actual
@@ -252,75 +294,87 @@ class BackupService:
                 # Extraer el dump del ZIP
                 temp_path = backup_dir / "temp_restore.sql"
                 with zipfile.ZipFile(backup_path, "r") as zipf:
-                    sql_files = [f for f in zipf.namelist() if f.endswith(".sql")]
+                    sql_files = [
+                        f for f in zipf.namelist() if f.endswith(".sql")
+                    ]
                     if not sql_files:
                         return {
                             "success": False,
                             "message": "El archivo ZIP no contiene un dump de PostgreSQL",
                         }
 
-                    with zipf.open(sql_files[0]) as source, open(temp_path, "wb") as target:
+                    with (
+                        zipf.open(sql_files[0]) as source,
+                        open(temp_path, "wb") as target,
+                    ):
                         shutil.copyfileobj(source, target)
 
-                # Restaurar con pg_restore
-                env = os.environ.copy()
-                env["PGPASSWORD"] = pg_config["password"]
+                # Detectar si PostgreSQL está en Docker
+                is_docker = pg_config["host"] == "localhost" or pg_config["host"] == "127.0.0.1"
 
-                # Primero, limpiar la base de datos
-                drop_cmd = [
-                    "psql",
-                    "-h",
-                    pg_config["host"],
-                    "-p",
-                    pg_config["port"],
-                    "-U",
-                    pg_config["user"],
-                    "-d",
-                    "postgres",  # Conectar a postgres para poder dropear la DB
-                    "-c",
-                    f"DROP DATABASE IF EXISTS {pg_config['database']}",
-                ]
+                if is_docker:
+                    # Copiar el archivo al contenedor
+                    copy_cmd = [
+                        "docker",
+                        "cp",
+                        str(temp_path),
+                        "hc_postgres:/tmp/restore.sql"
+                    ]
+                    subprocess.run(copy_cmd, capture_output=True)
 
-                subprocess.run(drop_cmd, env=env, capture_output=True)
+                    # Restaurar con pg_restore desde el contenedor
+                    restore_cmd = [
+                        "docker",
+                        "exec",
+                        "hc_postgres",
+                        "pg_restore",
+                        "-U",
+                        pg_config["user"],
+                        "-d",
+                        pg_config["database"],
+                        "-c",  # Clean (drop) database objects before recreating
+                        "--if-exists",
+                        "/tmp/restore.sql",
+                    ]
 
-                # Recrear la base de datos
-                create_cmd = [
-                    "psql",
-                    "-h",
-                    pg_config["host"],
-                    "-p",
-                    pg_config["port"],
-                    "-U",
-                    pg_config["user"],
-                    "-d",
-                    "postgres",
-                    "-c",
-                    f"CREATE DATABASE {pg_config['database']}",
-                ]
+                    result = subprocess.run(
+                        restore_cmd,
+                        capture_output=True,
+                        text=True,
+                    )
 
-                subprocess.run(create_cmd, env=env, capture_output=True)
+                    # Limpiar archivo temporal del contenedor
+                    subprocess.run(
+                        ["docker", "exec", "hc_postgres", "rm", "/tmp/restore.sql"],
+                        capture_output=True
+                    )
 
-                # Restaurar el dump
-                restore_cmd = [
-                    "pg_restore",
-                    "-h",
-                    pg_config["host"],
-                    "-p",
-                    pg_config["port"],
-                    "-U",
-                    pg_config["user"],
-                    "-d",
-                    pg_config["database"],
-                    "-c",  # Clean (drop) database objects before recreating
-                    str(temp_path),
-                ]
+                else:
+                    # Restaurar con pg_restore directo (PostgreSQL local)
+                    env = os.environ.copy()
+                    env["PGPASSWORD"] = pg_config["password"]
 
-                result = subprocess.run(
-                    restore_cmd,
-                    env=env,
-                    capture_output=True,
-                    text=True,
-                )
+                    # Restaurar el dump
+                    restore_cmd = [
+                        "pg_restore",
+                        "-h",
+                        pg_config["host"],
+                        "-p",
+                        pg_config["port"],
+                        "-U",
+                        pg_config["user"],
+                        "-d",
+                        pg_config["database"],
+                        "-c",  # Clean (drop) database objects before recreating
+                        str(temp_path),
+                    ]
+
+                    result = subprocess.run(
+                        restore_cmd,
+                        env=env,
+                        capture_output=True,
+                        text=True,
+                    )
 
                 # Eliminar archivo temporal
                 temp_path.unlink()
@@ -354,16 +408,22 @@ class BackupService:
             backup_dir = BackupService.get_backup_dir()
             backups = []
 
-            for backup_file in sorted(backup_dir.glob("backup_*.zip"), reverse=True):
+            for backup_file in sorted(
+                backup_dir.glob("backup_*.zip"), reverse=True
+            ):
                 stat = backup_file.stat()
                 size_kb = stat.st_size / 1024
 
                 # Extraer timestamp del nombre del archivo
                 filename = backup_file.name
-                timestamp_str = filename.replace("backup_", "").replace(".zip", "")
+                timestamp_str = filename.replace("backup_", "").replace(
+                    ".zip", ""
+                )
 
                 try:
-                    timestamp = datetime.strptime(timestamp_str, "%Y%m%d_%H%M%S")
+                    timestamp = datetime.strptime(
+                        timestamp_str, "%Y%m%d_%H%M%S"
+                    )
                     formatted_date = timestamp.strftime("%d/%m/%Y %H:%M:%S")
                 except ValueError:
                     formatted_date = "Fecha desconocida"
