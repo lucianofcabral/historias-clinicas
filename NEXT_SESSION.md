@@ -39,7 +39,8 @@ O más directo:
 ## 🎯 Estado Actual del Proyecto
 
 **Branch Activo**: `feature/multi-file-architecture`  
-**Última Actualización**: 19 de octubre de 2025  
+**Última Actualización**: 20 de octubre de 2025  
+**Versión**: v1.2.0 - Visual Indicators  
 **Estado**: ✅ Funcional - Listo para testing
 
 ### Features Completadas ✅
@@ -48,6 +49,7 @@ O más directo:
 3. Múltiples archivos en pacientes (hasta 10 + categorías)
 4. Vista unificada de archivos
 5. Nombre/DNI del paciente en estudios
+6. **Indicadores visuales** - Badges de cantidad + Spinners de progreso (v1.2.0)
 
 ### Próximo Paso Recomendado 🎯
 **Testing End-to-End** - Ver TODO.md sección "Prioridad Alta"

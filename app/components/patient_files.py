@@ -331,6 +331,27 @@ def upload_modal() -> rx.Component:
                 spacing="3",
                 width="100%",
             ),
+            # Indicador de carga durante upload
+            rx.cond(
+                PatientFilesState.is_uploading,
+                rx.vstack(
+                    rx.hstack(
+                        rx.spinner(size="3"),
+                        rx.text(
+                            PatientFilesState.upload_progress,
+                            size="2",
+                            weight="medium",
+                        ),
+                        spacing="3",
+                        align="center",
+                    ),
+                    padding="1rem",
+                    background=COLORS["surface"],
+                    border_radius="0.5rem",
+                    width="100%",
+                ),
+                rx.fragment(),
+            ),
             # Botones
             rx.flex(
                 rx.dialog.close(
@@ -344,7 +365,8 @@ def upload_modal() -> rx.Component:
                     rx.icon("upload", size=16),
                     "Subir Archivos",
                     on_click=PatientFilesState.save_uploaded_files,
-                    disabled=PatientFilesState.uploaded_files.length() == 0,
+                    disabled=(PatientFilesState.uploaded_files.length() == 0) | PatientFilesState.is_uploading,
+                    loading=PatientFilesState.is_uploading,
                 ),
                 spacing="3",
                 margin_top="1rem",

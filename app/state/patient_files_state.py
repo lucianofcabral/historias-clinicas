@@ -47,21 +47,21 @@ class PatientFilesState(rx.State):
 
     # Upload de archivos múltiples
     show_upload_modal: bool = False
-    uploaded_files: list[
-        dict
-    ] = []  # [{"data": base64, "name": str, "size": int, "type": str}]
+    uploaded_files: list[dict] = []  # [{"data": base64, "name": str, "size": int, "type": str}]
     upload_category: str = "DOCUMENT"  # Categoría por defecto
     upload_description: str = ""
     upload_message: str = ""
     upload_message_type: str = ""  # "success" o "error"
 
+    # Indicador de carga
+    is_uploading: bool = False
+    upload_progress: str = ""  # Texto de progreso como "Subiendo 2 de 5 archivos..."
+
     @rx.var
     def filtered_files(self) -> list[UnifiedFile]:
         """Retorna archivos filtrados por categoría seleccionada"""
         if self.selected_category == "all":
-            return (
-                self.patient_files + self.study_files + self.consultation_files
-            )
+            return self.patient_files + self.study_files + self.consultation_files
         elif self.selected_category == "patient":
             return self.patient_files
         elif self.selected_category == "study":
@@ -77,9 +77,7 @@ class PatientFilesState(rx.State):
 
         try:
             # 1. Cargar archivos directos del paciente
-            patient_files_raw = PatientFileService.get_files_by_patient(
-                session, patient_id
-            )
+            patient_files_raw = PatientFileService.get_files_by_patient(session, patient_id)
             self.patient_files = [
                 UnifiedFile(
                     file_id=f.id,
@@ -96,18 +94,14 @@ class PatientFilesState(rx.State):
             ]
 
             # 2. Cargar archivos de estudios médicos
-            study_files_raw = StudyFileService.get_files_by_patient(
-                session, patient_id
-            )
+            study_files_raw = StudyFileService.get_files_by_patient(session, patient_id)
             # Necesitamos obtener el nombre del estudio para cada archivo
             from app.models import MedicalStudy
 
             self.study_files = []
             for f in study_files_raw:
                 study = session.get(MedicalStudy, f.study_id)
-                study_name = (
-                    study.study_name if study else f"Estudio #{f.study_id}"
-                )
+                study_name = study.study_name if study else f"Estudio #{f.study_id}"
 
                 self.study_files.append(
                     UnifiedFile(
@@ -124,10 +118,8 @@ class PatientFilesState(rx.State):
                 )
 
             # 3. Cargar archivos de consultas
-            consultation_files_raw = (
-                ConsultationFileService.get_files_by_patient(
-                    session, patient_id
-                )
+            consultation_files_raw = ConsultationFileService.get_files_by_patient(
+                session, patient_id
             )
             from app.models import Consultation
 
@@ -155,9 +147,7 @@ class PatientFilesState(rx.State):
                 )
 
             # Calcular estadísticas
-            all_files = (
-                self.patient_files + self.study_files + self.consultation_files
-            )
+            all_files = self.patient_files + self.study_files + self.consultation_files
             self.total_files = len(all_files)
             total_size_bytes = sum(f.file_size for f in all_files)
             self.total_size_mb = round(total_size_bytes / (1024 * 1024), 2)
@@ -168,9 +158,7 @@ class PatientFilesState(rx.State):
     def get_filtered_files(self) -> list[UnifiedFile]:
         """Retorna archivos filtrados por categoría seleccionada"""
         if self.selected_category == "all":
-            return (
-                self.patient_files + self.study_files + self.consultation_files
-            )
+            return self.patient_files + self.study_files + self.consultation_files
         elif self.selected_category == "patient":
             return self.patient_files
         elif self.selected_category == "study":
@@ -206,9 +194,7 @@ class PatientFilesState(rx.State):
                 print(f"🚀 Descargando: {file_name} ({len(file_data)} bytes)")
                 return rx.download(data=file_data, filename=file_name)
             else:
-                print(
-                    f"❌ Archivo no encontrado: ID={file_id}, category={category}"
-                )
+                print(f"❌ Archivo no encontrado: ID={file_id}, category={category}")
 
         except Exception as e:
             print(f"❌ Error al descargar archivo: {e}")
@@ -243,9 +229,7 @@ class PatientFilesState(rx.State):
 
     async def handle_upload(self, files: list[rx.UploadFile]):
         """Maneja la carga de múltiples archivos"""
-        print(
-            f"📁 DEBUG UPLOAD: handle_upload llamado con {len(files)} archivo(s)"
-        )
+        print(f"📁 DEBUG UPLOAD: handle_upload llamado con {len(files)} archivo(s)")
 
         if not files:
             print("⚠️ DEBUG UPLOAD: No hay archivos")
@@ -255,15 +239,11 @@ class PatientFilesState(rx.State):
 
         uploaded_list = []
         for idx, file in enumerate(files):
-            print(
-                f"📁 DEBUG UPLOAD [{idx + 1}/{len(files)}]: Procesando {file.filename}"
-            )
+            print(f"📁 DEBUG UPLOAD [{idx + 1}/{len(files)}]: Procesando {file.filename}")
 
             try:
                 file_data = await file.read()
-                print(
-                    f"✅ DEBUG UPLOAD: Contenido leído: {len(file_data)} bytes"
-                )
+                print(f"✅ DEBUG UPLOAD: Contenido leído: {len(file_data)} bytes")
 
                 uploaded_list.append(
                     {
@@ -273,14 +253,10 @@ class PatientFilesState(rx.State):
                         "type": file.content_type or "application/octet-stream",
                     }
                 )
-                print(
-                    f"✅ DEBUG UPLOAD: Archivo {file.filename} cargado correctamente"
-                )
+                print(f"✅ DEBUG UPLOAD: Archivo {file.filename} cargado correctamente")
             except Exception as e:
                 print(f"❌ DEBUG UPLOAD: Error al leer {file.filename}: {e}")
-                self.upload_message = (
-                    f"Error al cargar {file.filename}: {str(e)}"
-                )
+                self.upload_message = f"Error al cargar {file.filename}: {str(e)}"
                 self.upload_message_type = "error"
 
         self.uploaded_files = uploaded_list
@@ -311,24 +287,30 @@ class PatientFilesState(rx.State):
             print("❌ DEBUG: No hay archivos para subir")
             return
 
+        # Activar indicador de carga
+        self.is_uploading = True
+        self.upload_progress = "Preparando archivos..."
+
         session = next(get_session())
         try:
             import base64
             from io import BytesIO
             import traceback
 
+            total_files = len(self.uploaded_files)
             files_saved = 0
             for idx, file_info in enumerate(self.uploaded_files):
+                # Actualizar progreso
+                self.upload_progress = f"Subiendo archivo {idx + 1} de {total_files}..."
+                
                 try:
                     file_data = base64.b64decode(file_info["data"])
                     file_io = BytesIO(file_data)
 
                     print(
-                        f"📤 DEBUG SAVE [{idx + 1}/{len(self.uploaded_files)}]: Guardando {file_info['name']}"
+                        f"📤 DEBUG SAVE [{idx + 1}/{total_files}]: Guardando {file_info['name']}"
                     )
-                    print(
-                        f"📤 DEBUG: Tamaño decodificado: {len(file_data)} bytes"
-                    )
+                    print(f"📤 DEBUG: Tamaño decodificado: {len(file_data)} bytes")
 
                     PatientFileService.create_file(
                         session=session,
@@ -337,36 +319,32 @@ class PatientFilesState(rx.State):
                         file_name=file_info["name"],
                         file_type=file_info["type"],
                         file_category=self.upload_category,
-                        description=self.upload_description
-                        if self.upload_description
-                        else None,
+                        description=self.upload_description if self.upload_description else None,
                     )
                     files_saved += 1
-                    print(
-                        f"✅ DEBUG SAVE: Archivo {file_info['name']} guardado"
-                    )
+                    print(f"✅ DEBUG SAVE: Archivo {file_info['name']} guardado")
                 except Exception as e:
-                    print(
-                        f"❌ DEBUG SAVE: Error al guardar {file_info['name']}: {e}"
-                    )
-                    print(f"❌ DEBUG SAVE: Traceback:")
+                    print(f"❌ DEBUG SAVE: Error al guardar {file_info['name']}: {e}")
+                    print("❌ DEBUG SAVE: Traceback:")
                     traceback.print_exc()
 
-            print(
-                f"✅ DEBUG: Archivos guardados: {files_saved}/{len(self.uploaded_files)}"
-            )
+            print(f"✅ DEBUG: Archivos guardados: {files_saved}/{total_files}")
 
-            if files_saved == len(self.uploaded_files):
-                self.upload_message = (
-                    f"✅ {files_saved} archivo(s) subido(s) exitosamente"
-                )
+            if files_saved == total_files:
+                self.upload_message = f"✅ {files_saved} archivo(s) subido(s) exitosamente"
                 self.upload_message_type = "success"
             elif files_saved > 0:
-                self.upload_message = f"⚠️ {files_saved}/{len(self.uploaded_files)} archivos guardados"
+                self.upload_message = (
+                    f"⚠️ {files_saved}/{total_files} archivos guardados"
+                )
                 self.upload_message_type = "success"
             else:
                 self.upload_message = "❌ Error al guardar archivos"
                 self.upload_message_type = "error"
+
+            # Desactivar indicador de carga
+            self.is_uploading = False
+            self.upload_progress = ""
 
             # Recargar archivos si se guardó al menos uno
             if files_saved > 0:
@@ -376,6 +354,8 @@ class PatientFilesState(rx.State):
                 print("✅ DEBUG: Archivos recargados y modal cerrado")
 
         except Exception as e:
+            self.is_uploading = False
+            self.upload_progress = ""
             self.upload_message = f"Error: {str(e)}"
             self.upload_message_type = "error"
             print(f"❌ Error general: {e}")

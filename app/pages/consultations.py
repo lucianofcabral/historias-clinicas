@@ -43,6 +43,17 @@ def consultation_card(consultation: dict) -> rx.Component:
                     align_items="start",
                 ),
                 rx.spacer(),
+                # Badge de cantidad de archivos
+                rx.cond(
+                    consultation["has_files"],
+                    rx.badge(
+                        rx.icon("paperclip", size=14),
+                        consultation["file_count_text"],
+                        color_scheme="blue",
+                        variant="soft",
+                    ),
+                    rx.fragment(),
+                ),
                 rx.hstack(
                     rx.button(
                         rx.icon("eye", size=16),
@@ -476,6 +487,27 @@ def new_consultation_modal() -> rx.Component:
                 height="60vh",
                 scrollbars="vertical",
             ),
+            # Indicador de carga durante upload
+            rx.cond(
+                ConsultationState.is_uploading,
+                rx.vstack(
+                    rx.hstack(
+                        rx.spinner(size="3"),
+                        rx.text(
+                            ConsultationState.upload_progress,
+                            size="2",
+                            weight="medium",
+                        ),
+                        spacing="3",
+                        align="center",
+                    ),
+                    padding="1rem",
+                    background=COLORS["surface"],
+                    border_radius="0.5rem",
+                    width="100%",
+                ),
+                rx.fragment(),
+            ),
             rx.flex(
                 rx.dialog.close(
                     rx.button(
@@ -491,6 +523,8 @@ def new_consultation_modal() -> rx.Component:
                         "Crear Consulta",
                     ),
                     on_click=ConsultationState.save_consultation,
+                    disabled=ConsultationState.is_uploading,
+                    loading=ConsultationState.is_uploading,
                 ),
                 spacing="3",
                 margin_top="1rem",

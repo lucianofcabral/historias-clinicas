@@ -29,6 +29,25 @@ def study_type_badge(study_type: str) -> rx.Component:
     )
 
 
+def file_count_badge(study) -> rx.Component:
+    """Badge para mostrar el conteo de archivos de un estudio"""
+    # Obtener el conteo desde el diccionario del estado
+    file_count = MedicalStudyState.studies_file_count[study.id]
+    return rx.cond(
+        file_count,
+        rx.badge(
+            rx.icon("paperclip", size=14),
+            f" {file_count} archivo(s)",
+            color_scheme="blue",
+            variant="soft",
+        ),
+        rx.fragment(),
+    )
+
+
+
+
+
 def study_files_section() -> rx.Component:
     """Sección de archivos adjuntos del estudio"""
     return rx.cond(
@@ -115,6 +134,8 @@ def study_card(study) -> rx.Component:
             rx.hstack(
                 study_type_badge(study.study_type),
                 rx.spacer(),
+                # Badge de cantidad de archivos
+                file_count_badge(study),
                 rx.text(
                     study.study_date.to_string(),
                     size="2",
@@ -689,6 +710,27 @@ def new_study_modal() -> rx.Component:
                 spacing="3",
                 width="100%",
             ),
+            # Indicador de carga durante upload
+            rx.cond(
+                MedicalStudyState.is_uploading,
+                rx.vstack(
+                    rx.hstack(
+                        rx.spinner(size="3"),
+                        rx.text(
+                            MedicalStudyState.upload_progress,
+                            size="2",
+                            weight="medium",
+                        ),
+                        spacing="3",
+                        align="center",
+                    ),
+                    padding="1rem",
+                    background=COLORS["surface"],
+                    border_radius="0.5rem",
+                    width="100%",
+                ),
+                rx.fragment(),
+            ),
             rx.flex(
                 rx.dialog.close(
                     rx.button(
@@ -704,6 +746,8 @@ def new_study_modal() -> rx.Component:
                         "Crear Estudio",
                     ),
                     on_click=MedicalStudyState.save_study,
+                    disabled=MedicalStudyState.is_uploading,
+                    loading=MedicalStudyState.is_uploading,
                 ),
                 spacing="3",
                 margin_top="1rem",

@@ -6,6 +6,8 @@ import reflex as rx
 
 from app.database import get_session
 from app.services import ConsultationService, PatientService
+from app.services.consultation_file_service import ConsultationFileService
+from app.services.consultation_file_service import ConsultationFileService
 
 
 class ConsultationState(rx.State):
@@ -13,6 +15,9 @@ class ConsultationState(rx.State):
 
     # Lista de consultas
     consultations: list[dict] = []
+
+    # Conteo de archivos por consulta (cache)
+    _consultations_file_count: dict[int, int] = {}
 
     # Formulario
     show_new_consultation_modal: bool = False
@@ -45,9 +50,18 @@ class ConsultationState(rx.State):
         dict
     ] = []  # Lista de archivos: [{"data": base64, "name": str, "size": int, "type": str}]
 
+    # Indicador de carga
+    is_uploading: bool = False
+    upload_progress: str = ""  # Texto de progreso como "Subiendo 2 de 5 archivos..."
+
     # Mensajes
     error_message: str = ""
     success_message: str = ""
+
+    @rx.var
+    def consultations_file_count(self) -> dict[int, int]:
+        """Retorna el diccionario de conteo de archivos por consulta"""
+        return self._consultations_file_count
 
     # Setters explícitos
     def set_show_new_consultation_modal(self, value: bool):
@@ -157,6 +171,7 @@ class ConsultationState(rx.State):
         from app.models import Patient
 
         self.consultations = []
+        self._consultations_file_count = {}
         for c in consultations:
             # Obtener datos del paciente
             patient = session.get(Patient, c.patient_id)
@@ -164,6 +179,11 @@ class ConsultationState(rx.State):
                 f"{patient.first_name} {patient.last_name}" if patient else "Paciente Desconocido"
             )
             patient_dni = patient.dni if patient else ""
+
+            # Obtener conteo de archivos
+            files = ConsultationFileService.get_files_by_consultation(session, c.id)
+            file_count = len(files)
+            self._consultations_file_count[c.id] = file_count
 
             self.consultations.append(
                 {
@@ -183,6 +203,9 @@ class ConsultationState(rx.State):
                     "height": str(c.height) if c.height else "",
                     "bmi": str(c.bmi) if c.bmi else "",
                     "bmi_category": c.bmi_category or "",
+                    "file_count": file_count,
+                    "file_count_text": f"{file_count} archivo(s)" if file_count > 0 else "",
+                    "has_files": file_count > 0,
                     "has_vital_signs": c.has_vital_signs,
                     "next_visit": c.next_visit.strftime("%Y-%m-%d") if c.next_visit else "",
                 }
@@ -371,6 +394,10 @@ class ConsultationState(rx.State):
                 self.error_message = "Formato de presión arterial inválido. Use formato: 120/80"
                 return
 
+        # Activar indicador de carga
+        self.is_uploading = True
+        self.upload_progress = "Creando consulta..."
+
         session = next(get_session())
 
         try:
@@ -407,18 +434,22 @@ class ConsultationState(rx.State):
                 from io import BytesIO
                 from app.services import ConsultationFileService
 
+                total_files = len(self.uploaded_files)
                 print(
-                    f"📎 DEBUG CREATE CONSULTATION: Procesando {len(self.uploaded_files)} archivo(s)..."
+                    f"📎 DEBUG CREATE CONSULTATION: Procesando {total_files} archivo(s)..."
                 )
 
                 files_saved = 0
                 for idx, file_info in enumerate(self.uploaded_files):
+                    # Actualizar progreso
+                    self.upload_progress = f"Subiendo archivo {idx + 1} de {total_files}..."
+                    
                     try:
                         file_data = base64.b64decode(file_info["data"])
                         file_io = BytesIO(file_data)
 
                         print(
-                            f"✅ DEBUG CREATE [{idx + 1}/{len(self.uploaded_files)}]: Guardando {file_info['name']}"
+                            f"✅ DEBUG CREATE [{idx + 1}/{total_files}]: Guardando {file_info['name']}"
                         )
 
                         ConsultationFileService.create_file(
@@ -436,12 +467,21 @@ class ConsultationState(rx.State):
                     print(f"✅ {files_saved} archivo(s) guardado(s) correctamente")
 
             self.success_message = "Consulta creada exitosamente"
+            
+            # Desactivar indicador de carga
+            self.is_uploading = False
+            self.upload_progress = ""
+            
             self.close_new_consultation_modal()
             self.load_consultations()
 
         except ValueError as e:
+            self.is_uploading = False
+            self.upload_progress = ""
             self.error_message = f"Error en los datos ingresados: {str(e)}"
         except Exception as e:
+            self.is_uploading = False
+            self.upload_progress = ""
             self.error_message = f"Error al crear la consulta: {str(e)}"
 
     def update_consultation(self):
@@ -474,6 +514,10 @@ class ConsultationState(rx.State):
             if "/" not in self.form_blood_pressure:
                 self.error_message = "Formato de presión arterial inválido. Use formato: 120/80"
                 return
+
+        # Activar indicador de carga
+        self.is_uploading = True
+        self.upload_progress = "Actualizando consulta..."
 
         session = next(get_session())
 
@@ -515,18 +559,22 @@ class ConsultationState(rx.State):
                 from io import BytesIO
                 from app.services import ConsultationFileService
 
+                total_files = len(self.uploaded_files)
                 print(
-                    f"📤 DEBUG UPDATE CONSULTATION: Procesando {len(self.uploaded_files)} archivo(s)..."
+                    f"📤 DEBUG UPDATE CONSULTATION: Procesando {total_files} archivo(s)..."
                 )
 
                 files_saved = 0
                 for idx, file_info in enumerate(self.uploaded_files):
+                    # Actualizar progreso
+                    self.upload_progress = f"Subiendo archivo {idx + 1} de {total_files}..."
+                    
                     try:
                         file_data = base64.b64decode(file_info["data"])
                         file_io = BytesIO(file_data)
 
                         print(
-                            f"✅ DEBUG UPDATE [{idx + 1}/{len(self.uploaded_files)}]: Guardando {file_info['name']}"
+                            f"✅ DEBUG UPDATE [{idx + 1}/{total_files}]: Guardando {file_info['name']}"
                         )
 
                         ConsultationFileService.create_file(
@@ -544,12 +592,21 @@ class ConsultationState(rx.State):
                     print(f"✅ {files_saved} archivo(s) nuevo(s) agregado(s) a la consulta")
 
             self.success_message = "Consulta actualizada exitosamente"
+            
+            # Desactivar indicador de carga
+            self.is_uploading = False
+            self.upload_progress = ""
+            
             self.close_new_consultation_modal()
             self.load_consultations()
 
         except ValueError as e:
+            self.is_uploading = False
+            self.upload_progress = ""
             self.error_message = f"Error en los datos ingresados: {str(e)}"
         except Exception as e:
+            self.is_uploading = False
+            self.upload_progress = ""
             self.error_message = f"Error al actualizar la consulta: {str(e)}"
 
     def filter_by_patient(self, patient_id: str):

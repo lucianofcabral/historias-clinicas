@@ -45,6 +45,26 @@
 - **Optimización**: Una sola query para cargar todos los datos
 - **Estado**: Funcional ✅
 
+### ✅ 6. Indicadores Visuales de Archivos (v1.2.0)
+- **Badges de Cantidad**: 
+  - Muestra "N archivo(s)" con ícono de clip en listas de estudios y consultas
+  - Solo visible cuando hay archivos adjuntos
+  - Implementado con `rx.badge()` color azul
+  
+- **Indicadores de Progreso**:
+  - Spinner animado durante uploads
+  - Texto dinámico "Subiendo archivo X de Y..."
+  - Botones deshabilitados durante operaciones
+  - Implementado en: Estudios, Consultas, Archivos de Pacientes
+  
+- **UX Mejorado**:
+  - Feedback inmediato al usuario
+  - Previene múltiples submissions
+  - Información clara del estado de carga
+  
+- **Documentación**: Ver `VISUAL_INDICATORS.md` para detalles completos
+- **Estado**: Funcional y probado ✅
+
 ---
 
 ## 🐛 Bugs Corregidos en esta Sesión
