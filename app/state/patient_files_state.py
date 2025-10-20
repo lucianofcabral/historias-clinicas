@@ -41,6 +41,14 @@ class PatientFilesState(rx.State):
     # Filtros
     selected_category: str = "all"  # "all", "patient", "study", "consultation"
 
+    # Upload de archivos múltiples
+    show_upload_modal: bool = False
+    uploaded_files: list[dict] = []  # [{"data": base64, "name": str, "size": int, "type": str}]
+    upload_category: str = "DOCUMENT"  # Categoría por defecto
+    upload_description: str = ""
+    upload_message: str = ""
+    upload_message_type: str = ""  # "success" o "error"
+
     @rx.var
     def filtered_files(self) -> list[UnifiedFile]:
         """Retorna archivos filtrados por categoría seleccionada"""
@@ -185,5 +193,128 @@ class PatientFilesState(rx.State):
             import traceback
 
             traceback.print_exc()
+        finally:
+            session.close()
+
+    # Métodos para upload múltiple
+    def open_upload_modal(self):
+        """Abre el modal para subir archivos"""
+        self.show_upload_modal = True
+        self.uploaded_files = []
+        self.upload_category = "DOCUMENT"
+        self.upload_description = ""
+        self.upload_message = ""
+
+    def close_upload_modal(self):
+        """Cierra el modal de upload"""
+        self.show_upload_modal = False
+        self.uploaded_files = []
+        self.upload_message = ""
+
+    def set_upload_category(self, value: str):
+        """Setter para upload_category"""
+        self.upload_category = value
+
+    def set_upload_description(self, value: str):
+        """Setter para upload_description"""
+        self.upload_description = value
+
+    async def handle_upload(self, files: list[rx.UploadFile]):
+        """Maneja la carga de múltiples archivos"""
+        print(f"📁 DEBUG UPLOAD: handle_upload llamado con {len(files)} archivo(s)")
+
+        if not files:
+            print("⚠️ DEBUG UPLOAD: No hay archivos")
+            return
+
+        import base64
+
+        uploaded_list = []
+        for idx, file in enumerate(files):
+            print(f"📁 DEBUG UPLOAD [{idx+1}/{len(files)}]: Procesando {file.filename}")
+
+            try:
+                file_data = await file.read()
+                print(f"✅ DEBUG UPLOAD: Contenido leído: {len(file_data)} bytes")
+
+                uploaded_list.append({
+                    "data": base64.b64encode(file_data).decode("utf-8"),
+                    "name": file.filename,
+                    "size": file.size or len(file_data),
+                    "type": file.content_type or "application/octet-stream",
+                })
+                print(f"✅ DEBUG UPLOAD: Archivo {file.filename} cargado correctamente")
+            except Exception as e:
+                print(f"❌ DEBUG UPLOAD: Error al leer {file.filename}: {e}")
+                self.upload_message = f"Error al cargar {file.filename}: {str(e)}"
+                self.upload_message_type = "error"
+
+        self.uploaded_files = uploaded_list
+        print(f"✅ DEBUG UPLOAD: Total {len(uploaded_list)} archivos listos")
+
+    def remove_uploaded_file(self, index: int):
+        """Elimina un archivo de la lista de upload"""
+        if 0 <= index < len(self.uploaded_files):
+            removed = self.uploaded_files.pop(index)
+            print(f"🗑️ Archivo eliminado: {removed['name']}")
+
+    def save_uploaded_files(self):
+        """Guarda los archivos subidos en el sistema"""
+        if not self.current_patient_id:
+            self.upload_message = "No hay paciente seleccionado"
+            self.upload_message_type = "error"
+            return
+
+        if not self.uploaded_files:
+            self.upload_message = "No hay archivos para subir"
+            self.upload_message_type = "error"
+            return
+
+        session = next(get_session())
+        try:
+            import base64
+            from io import BytesIO
+
+            files_saved = 0
+            for idx, file_info in enumerate(self.uploaded_files):
+                try:
+                    file_data = base64.b64decode(file_info["data"])
+                    file_io = BytesIO(file_data)
+
+                    print(f"📤 DEBUG SAVE [{idx+1}/{len(self.uploaded_files)}]: Guardando {file_info['name']}")
+
+                    PatientFileService.upload_file(
+                        session=session,
+                        patient_id=self.current_patient_id,
+                        file_content=file_io,
+                        file_name=file_info["name"],
+                        file_type=file_info["type"],
+                        file_category=self.upload_category,
+                        description=self.upload_description if self.upload_description else None,
+                    )
+                    files_saved += 1
+                    print(f"✅ DEBUG SAVE: Archivo {file_info['name']} guardado")
+                except Exception as e:
+                    print(f"❌ DEBUG SAVE: Error al guardar {file_info['name']}: {e}")
+
+            if files_saved == len(self.uploaded_files):
+                self.upload_message = f"✅ {files_saved} archivo(s) subido(s) exitosamente"
+                self.upload_message_type = "success"
+            elif files_saved > 0:
+                self.upload_message = f"⚠️ {files_saved}/{len(self.uploaded_files)} archivos guardados"
+                self.upload_message_type = "success"
+            else:
+                self.upload_message = "❌ Error al guardar archivos"
+                self.upload_message_type = "error"
+
+            # Recargar archivos si se guardó al menos uno
+            if files_saved > 0:
+                self.load_all_files(self.current_patient_id)
+                self.close_upload_modal()
+
+        except Exception as e:
+            self.upload_message = f"Error: {str(e)}"
+            self.upload_message_type = "error"
+            print(f"❌ Error general: {e}")
         finally:
             session.close()

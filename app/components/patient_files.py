@@ -147,6 +147,12 @@ def patient_files_section() -> rx.Component:
                         variant="soft",
                         color_scheme="green",
                     ),
+                    rx.button(
+                        rx.icon("upload", size=16),
+                        "Subir Archivos",
+                        size="2",
+                        on_click=PatientFilesState.open_upload_modal,
+                    ),
                     spacing="2",
                 ),
                 width="100%",
@@ -205,4 +211,150 @@ def patient_files_section() -> rx.Component:
         border=f"1px solid {COLORS['border']}",
         background=COLORS["surface"],
         width="100%",
+    )
+
+
+def upload_modal() -> rx.Component:
+    """Modal para subir archivos múltiples"""
+    from app.models.patient_file import FileCategory
+
+    return rx.dialog.root(
+        rx.dialog.content(
+            rx.dialog.title("Subir Archivos del Paciente"),
+            rx.dialog.description(
+                "Sube uno o varios archivos relacionados con el paciente",
+                margin_bottom="1rem",
+            ),
+            rx.vstack(
+                # Selector de categoría
+                rx.text("Categoría *", size="2", weight="bold"),
+                rx.select(
+                    [category.value for category in FileCategory],
+                    value=PatientFilesState.upload_category,
+                    on_change=PatientFilesState.set_upload_category,
+                ),
+                # Descripción
+                rx.text("Descripción (opcional)", size="2", weight="bold"),
+                rx.text_area(
+                    placeholder="Descripción del archivo...",
+                    value=PatientFilesState.upload_description,
+                    on_change=PatientFilesState.set_upload_description,
+                    rows="3",
+                ),
+                # Upload de archivos
+                rx.text("Archivos *", size="2", weight="bold"),
+                rx.upload(
+                    rx.vstack(
+                        rx.button(
+                            rx.icon("upload", size=20),
+                            "Seleccionar Archivos",
+                            variant="soft",
+                            color_scheme="blue",
+                        ),
+                        rx.text(
+                            "PDF, imágenes, documentos (máx 50MB por archivo)",
+                            size="1",
+                            color=COLORS["text_secondary"],
+                        ),
+                        spacing="2",
+                    ),
+                    id="upload_patient_file",
+                    multiple=True,
+                    accept={
+                        "application/pdf": [".pdf"],
+                        "image/*": [".png", ".jpg", ".jpeg"],
+                        "application/msword": [".doc", ".docx"],
+                    },
+                    max_files=10,
+                    max_size=50 * 1024 * 1024,
+                    on_drop=PatientFilesState.handle_upload(
+                        rx.upload_files(upload_id="upload_patient_file")
+                    ),
+                ),
+                # Lista de archivos subidos
+                rx.cond(
+                    PatientFilesState.uploaded_files.length() > 0,
+                    rx.vstack(
+                        rx.text("Archivos listos para subir:", size="2", weight="bold"),
+                        rx.foreach(
+                            PatientFilesState.uploaded_files,
+                            lambda file_info, idx: rx.card(
+                                rx.hstack(
+                                    rx.icon("paperclip", size=18, color=COLORS["primary"]),
+                                    rx.vstack(
+                                        rx.text(
+                                            file_info["name"],
+                                            size="2",
+                                            weight="bold",
+                                        ),
+                                        rx.text(
+                                            file_info["type"],
+                                            size="1",
+                                            color=COLORS["text_secondary"],
+                                        ),
+                                        spacing="1",
+                                        align="start",
+                                    ),
+                                    rx.spacer(),
+                                    rx.button(
+                                        rx.icon("x", size=16),
+                                        on_click=PatientFilesState.remove_uploaded_file(idx),
+                                        variant="ghost",
+                                        color_scheme="red",
+                                        size="1",
+                                    ),
+                                    width="100%",
+                                    align="center",
+                                ),
+                                size="1",
+                                variant="surface",
+                            ),
+                        ),
+                        spacing="2",
+                        width="100%",
+                    ),
+                ),
+                # Mensajes
+                rx.cond(
+                    PatientFilesState.upload_message != "",
+                    rx.callout(
+                        PatientFilesState.upload_message,
+                        color_scheme=rx.cond(
+                            PatientFilesState.upload_message_type == "success",
+                            "green",
+                            "red",
+                        ),
+                        size="2",
+                    ),
+                    rx.box(),
+                ),
+                spacing="3",
+                width="100%",
+            ),
+            # Botones
+            rx.flex(
+                rx.dialog.close(
+                    rx.button(
+                        "Cancelar",
+                        variant="soft",
+                        color_scheme="gray",
+                    ),
+                ),
+                rx.button(
+                    rx.icon("upload", size=16),
+                    "Subir Archivos",
+                    on_click=PatientFilesState.save_uploaded_files,
+                    disabled=PatientFilesState.uploaded_files.length() == 0,
+                ),
+                spacing="3",
+                margin_top="1rem",
+                justify="end",
+            ),
+            style={
+                "max_width": "600px",
+                "background": COLORS["background"],
+            },
+        ),
+        open=PatientFilesState.show_upload_modal,
+        on_open_change=PatientFilesState.close_upload_modal,
     )
