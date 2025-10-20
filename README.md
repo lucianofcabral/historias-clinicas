@@ -188,6 +188,33 @@ hc/
 
 - Ver `INSTRUCTIONS.md` para documentación detallada del desarrollo
 - Ver `POSTGRESQL_SETUP_GUIDE.md` para configuración de PostgreSQL con Docker
+- Ver `FLY_DEPLOYMENT_GUIDE.md` para desplegar en Fly.io (GRATIS)
+
+## 🚀 Despliegue en Producción
+
+Esta aplicación está lista para desplegarse en **Fly.io** completamente gratis.
+
+Ver la guía completa en [`FLY_DEPLOYMENT_GUIDE.md`](FLY_DEPLOYMENT_GUIDE.md)
+
+**Resumen rápido:**
+```bash
+# Instalar Fly CLI
+curl -L https://fly.io/install.sh | sh
+
+# Login
+fly auth login
+
+# Crear app y PostgreSQL
+fly launch
+fly postgres create
+fly postgres attach <nombre-postgres>
+
+# Configurar secrets
+fly secrets set ADMIN_PASSWORD_HASH="tu_hash"
+
+# Desplegar
+fly deploy
+```
 
 ## 👨‍💻 Desarrollador
 
