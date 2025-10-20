@@ -6,14 +6,14 @@ Sistema web de escritorio para gestión de historias clínicas de un consultorio
 
 - **Python:** 3.13+
 - **Framework:** Reflex
-- **Base de Datos:** PostgreSQL
+- **Base de Datos:** PostgreSQL 16 (Docker)
 - **ORM:** SQLModel
 - **Gestor de Paquetes:** UV (Astral)
 
 ## 📋 Requisitos Previos
 
 - Python 3.13+
-- PostgreSQL 14+
+- Docker y Docker Compose
 - UV (instalador rápido de paquetes Python)
 
 ## 🔧 Instalación
@@ -31,26 +31,39 @@ powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
 ### 2. Clonar y Configurar
 
 ```bash
-git clone <tu-repo>
+git clone https://github.com/lucianofcabral/historias-clinicas.git
 cd hc
 
 # UV instalará Python 3.13 automáticamente si no lo tienes
 uv sync
 ```
 
-### 3. Configurar Base de Datos
+### 3. Configurar Base de Datos con Docker
 
 ```bash
-# Crear base de datos PostgreSQL
-createdb medical_records_db
+# Iniciar PostgreSQL y pgAdmin con Docker
+docker-compose up -d
 
-# Copiar variables de entorno
+# Verificar que los contenedores estén corriendo
+docker-compose ps
+```
+
+### 4. Configurar Variables de Entorno
+
+```bash
+# Copiar variables de entorno de ejemplo
 cp .env.example .env
 
 # Editar .env con tus credenciales
+nano .env  # o el editor de tu preferencia
 ```
 
-### 4. Generar Contraseña de Admin
+Configurar las siguientes variables en `.env`:
+- `ADMIN_PASSWORD_HASH`: Hash de tu contraseña de admin (ver paso 5)
+- `DATABASE_URL`: Ya configurado para Docker (no cambiar en desarrollo)
+- `SECRET_KEY`: Cambiar en producción
+
+### 5. Generar Contraseña de Admin
 
 ```bash
 uv run python -c "from passlib.context import CryptContext; print(CryptContext(schemes=['bcrypt']).hash('tu_password_aqui'))"
@@ -58,19 +71,25 @@ uv run python -c "from passlib.context import CryptContext; print(CryptContext(s
 
 Copiar el hash generado a `.env` en `ADMIN_PASSWORD_HASH`
 
-### 5. Inicializar Reflex
+### 6. Inicializar Reflex
 
 ```bash
 uv run reflex init
 ```
 
-### 6. Aplicar Migraciones
+### 7. Aplicar Migraciones
 
 ```bash
 uv run alembic upgrade head
 ```
 
-### 7. Ejecutar la Aplicación
+### 8. Poblar Base de Datos (Opcional - Datos de Prueba)
+
+```bash
+uv run python populate_db.py
+```
+
+### 9. Ejecutar la Aplicación
 
 ```bash
 uv run reflex run
@@ -78,7 +97,47 @@ uv run reflex run
 
 Abre tu navegador en: http://localhost:3000
 
-## 📦 Comandos Útiles
+## � Comandos Docker
+
+```bash
+# Iniciar contenedores
+docker-compose up -d
+
+# Detener contenedores
+docker-compose down
+
+# Ver logs
+docker-compose logs -f postgres
+
+# Backup manual de PostgreSQL
+docker exec hc_postgres pg_dump -U hc_user -d historia_clinica -F c > backup.dump
+
+# Restaurar backup
+docker exec -i hc_postgres pg_restore -U hc_user -d historia_clinica -c < backup.dump
+
+# Acceder a PostgreSQL CLI
+docker exec -it hc_postgres psql -U hc_user -d historia_clinica
+```
+
+## 🌐 pgAdmin (Interfaz Web para PostgreSQL)
+
+Acceder a http://localhost:5050
+
+**Credenciales de Login:**
+- Email: `admin@example.com`
+- Password: `admin`
+
+**Configurar conexión al servidor PostgreSQL:**
+1. Click derecho en "Servers" → "Register" → "Server"
+2. En pestaña "General": Name = `HC Database`
+3. En pestaña "Connection":
+   - Host: `postgres` (nombre del servicio Docker)
+   - Port: `5432`
+   - Database: `historia_clinica`
+   - Username: `hc_user`
+   - Password: `hc_password_dev_2025`
+
+## �📦 Comandos Útiles
 
 ```bash
 # Agregar nueva dependencia
@@ -113,6 +172,7 @@ hc/
 │   └── state/           # Estados Reflex
 ├── alembic/             # Migraciones
 ├── backups/             # Backups automáticos
+├── docker-compose.yml   # Configuración Docker
 └── pyproject.toml       # Configuración del proyecto
 ```
 
@@ -120,12 +180,14 @@ hc/
 
 - Sistema de usuario único con contraseña hasheada
 - Validación de inputs
-- Backups automáticos
+- Backups automáticos (compatible con Docker)
 - Soft delete (no se borran datos físicamente)
+- Base de datos en contenedor Docker con volúmenes persistentes
 
 ## 📚 Documentación
 
-Ver `INSTRUCTIONS.md` para documentación detallada del desarrollo.
+- Ver `INSTRUCTIONS.md` para documentación detallada del desarrollo
+- Ver `POSTGRESQL_SETUP_GUIDE.md` para configuración de PostgreSQL con Docker
 
 ## 👨‍💻 Desarrollador
 

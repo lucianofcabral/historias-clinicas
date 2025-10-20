@@ -40,6 +40,9 @@ env/
 studies/*
 !studies/.gitkeep
 
+# Archivos de pacientes (datos de prueba)
+patients/
+
 # Database
 *.db
 *.sqlite
