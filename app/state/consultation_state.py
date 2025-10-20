@@ -41,7 +41,9 @@ class ConsultationState(rx.State):
     patients_options: list[str] = []  # Lista de strings formateados (label) para el selector
 
     # Archivos adjuntos (múltiples)
-    uploaded_files: list[dict] = []  # Lista de archivos: [{"data": base64, "name": str, "size": int, "type": str}]
+    uploaded_files: list[
+        dict
+    ] = []  # Lista de archivos: [{"data": base64, "name": str, "size": int, "type": str}]
 
     # Mensajes
     error_message: str = ""
@@ -153,34 +155,38 @@ class ConsultationState(rx.State):
 
         # Cargar información de pacientes para cada consulta
         from app.models import Patient
-        
+
         self.consultations = []
         for c in consultations:
             # Obtener datos del paciente
             patient = session.get(Patient, c.patient_id)
-            patient_name = f"{patient.first_name} {patient.last_name}" if patient else "Paciente Desconocido"
+            patient_name = (
+                f"{patient.first_name} {patient.last_name}" if patient else "Paciente Desconocido"
+            )
             patient_dni = patient.dni if patient else ""
-            
-            self.consultations.append({
-                "id": c.id,
-                "patient_id": c.patient_id,
-                "patient_name": patient_name,
-                "patient_dni": patient_dni,
-                "consultation_date": c.consultation_date.strftime("%Y-%m-%d %H:%M"),
-                "reason": c.reason,
-                "symptoms": c.symptoms or "",
-                "diagnosis": c.diagnosis or "",
-                "treatment": c.treatment or "",
-                "blood_pressure": c.blood_pressure or "",
-                "heart_rate": str(c.heart_rate) if c.heart_rate else "",
-                "temperature": str(c.temperature) if c.temperature else "",
-                "weight": str(c.weight) if c.weight else "",
-                "height": str(c.height) if c.height else "",
-                "bmi": str(c.bmi) if c.bmi else "",
-                "bmi_category": c.bmi_category or "",
-                "has_vital_signs": c.has_vital_signs,
-                "next_visit": c.next_visit.strftime("%Y-%m-%d") if c.next_visit else "",
-            })
+
+            self.consultations.append(
+                {
+                    "id": c.id,
+                    "patient_id": c.patient_id,
+                    "patient_name": patient_name,
+                    "patient_dni": patient_dni,
+                    "consultation_date": c.consultation_date.strftime("%Y-%m-%d %H:%M"),
+                    "reason": c.reason,
+                    "symptoms": c.symptoms or "",
+                    "diagnosis": c.diagnosis or "",
+                    "treatment": c.treatment or "",
+                    "blood_pressure": c.blood_pressure or "",
+                    "heart_rate": str(c.heart_rate) if c.heart_rate else "",
+                    "temperature": str(c.temperature) if c.temperature else "",
+                    "weight": str(c.weight) if c.weight else "",
+                    "height": str(c.height) if c.height else "",
+                    "bmi": str(c.bmi) if c.bmi else "",
+                    "bmi_category": c.bmi_category or "",
+                    "has_vital_signs": c.has_vital_signs,
+                    "next_visit": c.next_visit.strftime("%Y-%m-%d") if c.next_visit else "",
+                }
+            )
 
     def load_patients(self):
         """Carga lista de pacientes para el selector"""
@@ -222,18 +228,20 @@ class ConsultationState(rx.State):
 
         uploaded_list = []
         for idx, file in enumerate(files):
-            print(f"📁 DEBUG UPLOAD [{idx+1}/{len(files)}]: Procesando {file.filename}")
-            
+            print(f"📁 DEBUG UPLOAD [{idx + 1}/{len(files)}]: Procesando {file.filename}")
+
             try:
                 file_data = await file.read()
                 print(f"✅ DEBUG UPLOAD: Contenido leído: {len(file_data)} bytes")
 
-                uploaded_list.append({
-                    "data": base64.b64encode(file_data).decode("utf-8"),
-                    "name": file.filename,
-                    "size": file.size or len(file_data),
-                    "type": file.content_type or "application/octet-stream",
-                })
+                uploaded_list.append(
+                    {
+                        "data": base64.b64encode(file_data).decode("utf-8"),
+                        "name": file.filename,
+                        "size": file.size or len(file_data),
+                        "type": file.content_type or "application/octet-stream",
+                    }
+                )
                 print(f"✅ DEBUG UPLOAD: Archivo {file.filename} cargado correctamente")
             except Exception as e:
                 print(f"❌ DEBUG UPLOAD: Error al leer archivo {file.filename}: {e}")
@@ -399,7 +407,9 @@ class ConsultationState(rx.State):
                 from io import BytesIO
                 from app.services import ConsultationFileService
 
-                print(f"📎 DEBUG CREATE CONSULTATION: Procesando {len(self.uploaded_files)} archivo(s)...")
+                print(
+                    f"📎 DEBUG CREATE CONSULTATION: Procesando {len(self.uploaded_files)} archivo(s)..."
+                )
 
                 files_saved = 0
                 for idx, file_info in enumerate(self.uploaded_files):
@@ -407,7 +417,9 @@ class ConsultationState(rx.State):
                         file_data = base64.b64decode(file_info["data"])
                         file_io = BytesIO(file_data)
 
-                        print(f"✅ DEBUG CREATE [{idx+1}/{len(self.uploaded_files)}]: Guardando {file_info['name']}")
+                        print(
+                            f"✅ DEBUG CREATE [{idx + 1}/{len(self.uploaded_files)}]: Guardando {file_info['name']}"
+                        )
 
                         ConsultationFileService.create_file(
                             session=session,
@@ -503,7 +515,9 @@ class ConsultationState(rx.State):
                 from io import BytesIO
                 from app.services import ConsultationFileService
 
-                print(f"📤 DEBUG UPDATE CONSULTATION: Procesando {len(self.uploaded_files)} archivo(s)...")
+                print(
+                    f"📤 DEBUG UPDATE CONSULTATION: Procesando {len(self.uploaded_files)} archivo(s)..."
+                )
 
                 files_saved = 0
                 for idx, file_info in enumerate(self.uploaded_files):
@@ -511,7 +525,9 @@ class ConsultationState(rx.State):
                         file_data = base64.b64decode(file_info["data"])
                         file_io = BytesIO(file_data)
 
-                        print(f"✅ DEBUG UPDATE [{idx+1}/{len(self.uploaded_files)}]: Guardando {file_info['name']}")
+                        print(
+                            f"✅ DEBUG UPDATE [{idx + 1}/{len(self.uploaded_files)}]: Guardando {file_info['name']}"
+                        )
 
                         ConsultationFileService.create_file(
                             session=session,

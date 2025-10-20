@@ -88,9 +88,7 @@ def study_files_section() -> rx.Component:
                                 variant="soft",
                                 color_scheme="green",
                                 size="2",
-                                on_click=lambda: MedicalStudyState.download_study_file(
-                                    file["id"]
-                                ),
+                                on_click=lambda: MedicalStudyState.download_study_file(file["id"]),
                             ),
                             width="100%",
                             align="center",
@@ -428,7 +426,9 @@ def detail_modal() -> rx.Component:
                             rx.hstack(
                                 rx.icon("file-text", size=20, color=COLORS["primary"]),
                                 rx.vstack(
-                                    rx.text("Archivo Adjunto (Sistema Antiguo)", size="2", weight="bold"),
+                                    rx.text(
+                                        "Archivo Adjunto (Sistema Antiguo)", size="2", weight="bold"
+                                    ),
                                     rx.text(
                                         MedicalStudyState.detail_study["file_name"],
                                         size="2",

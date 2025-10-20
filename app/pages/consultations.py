@@ -443,7 +443,11 @@ def new_consultation_modal() -> rx.Component:
                                         rx.icon("paperclip", size=18, color=COLORS["primary"]),
                                         rx.vstack(
                                             rx.text(file_info["name"], size="2", weight="bold"),
-                                            rx.text(file_info["type"], size="1", color=COLORS["text_secondary"]),
+                                            rx.text(
+                                                file_info["type"],
+                                                size="1",
+                                                color=COLORS["text_secondary"],
+                                            ),
                                             spacing="1",
                                             align="start",
                                         ),

@@ -27,9 +27,9 @@ class MedicalStudy(SQLModel, table=True):
     """Modelo para estudios y análisis médicos con archivos adjuntos"""
 
     __tablename__ = "medical_studies"
-    
+
     # Configuración para permitir atributos dinámicos
-    model_config = ConfigDict(arbitrary_types_allowed=True, extra='allow')
+    model_config = ConfigDict(arbitrary_types_allowed=True, extra="allow")
 
     # Primary Key
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -64,8 +64,6 @@ class MedicalStudy(SQLModel, table=True):
     # Timestamps
     created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
-    
-    
 
     @property
     def days_since_study(self) -> int:

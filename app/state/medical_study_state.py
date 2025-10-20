@@ -17,7 +17,7 @@ class MedicalStudyState(rx.State):
     # Lista de estudios
     studies: list[MedicalStudy] = []
     current_study: Optional[MedicalStudy] = None
-    
+
     # Información de pacientes para cada estudio (cache)
     _studies_patient_info: dict[int, dict[str, str]] = {}
 
@@ -54,15 +54,19 @@ class MedicalStudyState(rx.State):
     form_diagnosis: str = ""
 
     # Archivos adjuntos (múltiples)
-    uploaded_files: list[dict] = []  # Lista de archivos: [{"data": base64, "name": str, "size": int, "type": str}]
-    
+    uploaded_files: list[
+        dict
+    ] = []  # Lista de archivos: [{"data": base64, "name": str, "size": int, "type": str}]
+
     # Archivos del estudio en detalle
-    study_files: list[dict] = []  # Lista de archivos del estudio: [{"id": int, "file_name": str, "file_size": int, "file_type": str, "created_at": str}]
+    study_files: list[
+        dict
+    ] = []  # Lista de archivos del estudio: [{"id": int, "file_name": str, "file_size": int, "file_type": str, "created_at": str}]
 
     # Mensajes
     message: str = ""
     message_type: str = ""  # "success" o "error"
-    
+
     @rx.var
     def studies_patient_info(self) -> dict[int, dict[str, str]]:
         """Retorna el diccionario de información de pacientes"""
@@ -148,29 +152,35 @@ class MedicalStudyState(rx.State):
         session = next(get_session())
         try:
             if patient_id:
-                studies = MedicalStudyService.get_studies_by_patient(session, patient_id)
+                studies = MedicalStudyService.get_studies_by_patient(
+                    session, patient_id
+                )
                 self.selected_patient_id = patient_id
             else:
                 # Cargar todos los estudios
-                statement = select(MedicalStudy).order_by(MedicalStudy.study_date.desc())
+                statement = select(MedicalStudy).order_by(
+                    MedicalStudy.study_date.desc()
+                )
                 studies = list(session.exec(statement).all())
 
             # Limpiar cache anterior
             self._studies_patient_info = {}
-            
+
             # Cachear información del paciente para cada estudio
             for study in studies:
                 patient = session.get(Patient, study.patient_id)
                 if patient:
                     self._studies_patient_info[study.id] = {
                         "name": f"{patient.first_name} {patient.last_name}",
-                        "dni": patient.dni
+                        "dni": patient.dni,
                     }
-            
+
             self.studies = studies
 
             # Cargar estadísticas de almacenamiento
-            bytes_used = MedicalStudyService.get_total_storage_size(session, patient_id)
+            bytes_used = MedicalStudyService.get_total_storage_size(
+                session, patient_id
+            )
             self.storage_size_mb = round(bytes_used / (1024 * 1024), 2)
         finally:
             session.close()
@@ -188,26 +198,30 @@ class MedicalStudyState(rx.State):
             statement = select(MedicalStudy)
 
             if self.selected_patient_id:
-                statement = statement.where(MedicalStudy.patient_id == self.selected_patient_id)
+                statement = statement.where(
+                    MedicalStudy.patient_id == self.selected_patient_id
+                )
 
             if self.selected_study_type:
-                statement = statement.where(MedicalStudy.study_type == self.selected_study_type)
+                statement = statement.where(
+                    MedicalStudy.study_type == self.selected_study_type
+                )
 
             statement = statement.order_by(MedicalStudy.study_date.desc())
             studies = list(session.exec(statement).all())
-            
+
             # Limpiar cache anterior
             self._studies_patient_info = {}
-            
+
             # Cachear información del paciente para cada estudio
             for study in studies:
                 patient = session.get(Patient, study.patient_id)
                 if patient:
                     self._studies_patient_info[study.id] = {
                         "name": f"{patient.first_name} {patient.last_name}",
-                        "dni": patient.dni
+                        "dni": patient.dni,
                     }
-            
+
             self.studies = studies
         finally:
             session.close()
@@ -311,16 +325,22 @@ class MedicalStudyState(rx.State):
             if study:
                 # Obtener datos del paciente
                 patient = session.get(Patient, study.patient_id)
-                
+
                 # Convertir a diccionario con datos del paciente
                 self.detail_study = {
                     "id": study.id,
                     "patient_id": study.patient_id,
-                    "patient_name": f"{patient.first_name} {patient.last_name}" if patient else "",
+                    "patient_name": f"{patient.first_name} {patient.last_name}"
+                    if patient
+                    else "",
                     "patient_dni": patient.dni if patient else "",
-                    "study_type": study.study_type if isinstance(study.study_type, str) else study.study_type.value,
+                    "study_type": study.study_type
+                    if isinstance(study.study_type, str)
+                    else study.study_type.value,
                     "study_name": study.study_name,
-                    "study_date": study.study_date.strftime("%d/%m/%Y") if study.study_date else "",
+                    "study_date": study.study_date.strftime("%d/%m/%Y")
+                    if study.study_date
+                    else "",
                     "institution": study.institution or "",
                     "requesting_doctor": study.requesting_doctor or "",
                     "results": study.results or "",
@@ -329,12 +349,12 @@ class MedicalStudyState(rx.State):
                     "file_path": study.file_path or "",
                     "file_name": study.file_name or "",
                 }
-                
+
                 self.show_detail_modal = True
-                
+
                 # Cargar archivos del estudio
                 from app.services import StudyFileService
-                
+
                 files = StudyFileService.get_files_by_study(session, study_id)
                 self.study_files = [
                     {
@@ -342,7 +362,9 @@ class MedicalStudyState(rx.State):
                         "file_name": f.file_name,
                         "file_size_kb": f"{(f.file_size / 1024):.1f} KB",
                         "file_type": f.file_type,
-                        "created_at": f.uploaded_at.strftime("%d/%m/%Y %H:%M") if f.uploaded_at else "",
+                        "created_at": f.uploaded_at.strftime("%d/%m/%Y %H:%M")
+                        if f.uploaded_at
+                        else "",
                     }
                     for f in files
                 ]
@@ -354,20 +376,24 @@ class MedicalStudyState(rx.State):
         self.show_detail_modal = False
         self.detail_study = None
         self.study_files = []  # Limpiar archivos al cerrar
-    
+
     def download_study_file(self, file_id: int):
         """Descarga un archivo individual del estudio"""
         session = next(get_session())
         try:
             from app.services import StudyFileService
-            
-            file_path, file_name = StudyFileService.download_file(session, file_id)
-            print(f"🚀 Descargando archivo de estudio: {file_name} ({file_path})")
-            
+
+            file_path, file_name = StudyFileService.download_file(
+                session, file_id
+            )
+            print(
+                f"🚀 Descargando archivo de estudio: {file_name} ({file_path})"
+            )
+
             # Leer archivo y enviar bytes directamente
             with open(file_path, "rb") as f:
                 file_data = f.read()
-            
+
             return rx.download(data=file_data, filename=file_name)
         except Exception as e:
             print(f"❌ Error al descargar archivo: {e}")
@@ -404,28 +430,42 @@ class MedicalStudyState(rx.State):
         # Procesar todos los archivos
         uploaded_list = []
         for idx, file in enumerate(files):
-            print(f"📁 DEBUG UPLOAD [{idx+1}/{len(files)}]: Procesando {file.filename}")
+            print(
+                f"📁 DEBUG UPLOAD [{idx + 1}/{len(files)}]: Procesando {file.filename}"
+            )
             print(f"📁 DEBUG UPLOAD: Tamaño: {file.size} bytes")
             print(f"📁 DEBUG UPLOAD: Tipo: {file.content_type}")
 
             try:
                 file_data = await file.read()
-                print(f"✅ DEBUG UPLOAD: Contenido leído: {len(file_data)} bytes")
+                print(
+                    f"✅ DEBUG UPLOAD: Contenido leído: {len(file_data)} bytes"
+                )
 
-                uploaded_list.append({
-                    "data": base64.b64encode(file_data).decode("utf-8"),
-                    "name": file.filename,
-                    "size": file.size or len(file_data),
-                    "type": file.content_type or "application/octet-stream",
-                })
-                print(f"✅ DEBUG UPLOAD: Archivo {file.filename} cargado correctamente")
+                uploaded_list.append(
+                    {
+                        "data": base64.b64encode(file_data).decode("utf-8"),
+                        "name": file.filename,
+                        "size": file.size or len(file_data),
+                        "type": file.content_type or "application/octet-stream",
+                    }
+                )
+                print(
+                    f"✅ DEBUG UPLOAD: Archivo {file.filename} cargado correctamente"
+                )
             except Exception as e:
-                print(f"❌ DEBUG UPLOAD: Error al leer archivo {file.filename}: {e}")
-                self.message = f"Error al cargar archivo {file.filename}: {str(e)}"
+                print(
+                    f"❌ DEBUG UPLOAD: Error al leer archivo {file.filename}: {e}"
+                )
+                self.message = (
+                    f"Error al cargar archivo {file.filename}: {str(e)}"
+                )
                 self.message_type = "error"
 
         self.uploaded_files = uploaded_list
-        print(f"✅ DEBUG UPLOAD: Total {len(uploaded_list)} archivos listos para guardar")
+        print(
+            f"✅ DEBUG UPLOAD: Total {len(uploaded_list)} archivos listos para guardar"
+        )
 
     def remove_uploaded_file(self, index: int):
         """Elimina un archivo subido por índice"""
@@ -444,10 +484,14 @@ class MedicalStudyState(rx.State):
             session = next(get_session())
             try:
                 # Validar que el paciente existe (resolver label a id si aplica)
-                resolved_id = self._resolve_patient_id_from_form() or int(self.form_patient_id)
+                resolved_id = self._resolve_patient_id_from_form() or int(
+                    self.form_patient_id
+                )
                 patient = session.get(Patient, resolved_id)
                 if not patient:
-                    self.message = f"Paciente con ID {self.form_patient_id} no encontrado"
+                    self.message = (
+                        f"Paciente con ID {self.form_patient_id} no encontrado"
+                    )
                     self.message_type = "error"
                     return
 
@@ -486,7 +530,9 @@ class MedicalStudyState(rx.State):
                         file_data = base64.b64decode(self.uploaded_files[0])
                         file_io = BytesIO(file_data)
 
-                        print(f"✅ DEBUG CREATE: Contenido decodificado: {len(file_data)} bytes")
+                        print(
+                            f"✅ DEBUG CREATE: Contenido decodificado: {len(file_data)} bytes"
+                        )
 
                         result = MedicalStudyService.upload_file(
                             session=session,
@@ -495,14 +541,20 @@ class MedicalStudyState(rx.State):
                             file_name=self.file_name,
                             file_type=self.file_type,
                         )
-                        print(f"✅ DEBUG CREATE: Archivo guardado en: {result.file_path}")
+                        print(
+                            f"✅ DEBUG CREATE: Archivo guardado en: {result.file_path}"
+                        )
                         self.message = f"Estudio '{self.form_study_name}' creado exitosamente con archivo adjunto"
                     except Exception as e:
-                        print(f"❌ DEBUG CREATE: Error al procesar archivo: {e}")
+                        print(
+                            f"❌ DEBUG CREATE: Error al procesar archivo: {e}"
+                        )
                         self.message = f"Estudio creado pero error al guardar archivo: {str(e)}"
                 else:
                     print("ℹ️ DEBUG CREATE: No hay archivos para subir")
-                    self.message = f"Estudio '{self.form_study_name}' creado exitosamente"
+                    self.message = (
+                        f"Estudio '{self.form_study_name}' creado exitosamente"
+                    )
 
                 self.message_type = "success"
                 self.close_new_study_modal()
@@ -543,17 +595,25 @@ class MedicalStudyState(rx.State):
                     study_id=self.editing_study_id,
                     study_name=self.form_study_name,
                     study_date=study_date,
-                    institution=self.form_institution if self.form_institution else None,
+                    institution=self.form_institution
+                    if self.form_institution
+                    else None,
                     results=self.form_results if self.form_results else None,
                     study_type=StudyType(self.form_study_type),
                 )
 
                 # Actualizar campos adicionales directamente
                 study.requesting_doctor = (
-                    self.form_requesting_doctor if self.form_requesting_doctor else None
+                    self.form_requesting_doctor
+                    if self.form_requesting_doctor
+                    else None
                 )
-                study.observations = self.form_observations if self.form_observations else None
-                study.diagnosis = self.form_diagnosis if self.form_diagnosis else None
+                study.observations = (
+                    self.form_observations if self.form_observations else None
+                )
+                study.diagnosis = (
+                    self.form_diagnosis if self.form_diagnosis else None
+                )
 
                 session.add(study)
                 session.commit()
@@ -563,7 +623,9 @@ class MedicalStudyState(rx.State):
                     import base64
                     from io import BytesIO
 
-                    print(f"📤 DEBUG UPDATE: Procesando {len(self.uploaded_files)} archivo(s)...")
+                    print(
+                        f"📤 DEBUG UPDATE: Procesando {len(self.uploaded_files)} archivo(s)..."
+                    )
 
                     files_saved = 0
                     for idx, file_info in enumerate(self.uploaded_files):
@@ -572,7 +634,9 @@ class MedicalStudyState(rx.State):
                             file_data = base64.b64decode(file_info["data"])
                             file_io = BytesIO(file_data)
 
-                            print(f"✅ DEBUG UPDATE [{idx+1}/{len(self.uploaded_files)}]: Guardando {file_info['name']} ({len(file_data)} bytes)")
+                            print(
+                                f"✅ DEBUG UPDATE [{idx + 1}/{len(self.uploaded_files)}]: Guardando {file_info['name']} ({len(file_data)} bytes)"
+                            )
 
                             result = MedicalStudyService.upload_file(
                                 session=session,
@@ -581,10 +645,14 @@ class MedicalStudyState(rx.State):
                                 file_name=file_info["name"],
                                 file_type=file_info["type"],
                             )
-                            print(f"✅ DEBUG UPDATE: Archivo guardado en: {result.file_path}")
+                            print(
+                                f"✅ DEBUG UPDATE: Archivo guardado en: {result.file_path}"
+                            )
                             files_saved += 1
                         except Exception as e:
-                            print(f"❌ DEBUG UPDATE: Error al procesar {file_info['name']}: {e}")
+                            print(
+                                f"❌ DEBUG UPDATE: Error al procesar {file_info['name']}: {e}"
+                            )
 
                     if files_saved == len(self.uploaded_files):
                         self.message = f"Estudio '{self.form_study_name}' actualizado exitosamente con {files_saved} archivo(s) nuevo(s)"
