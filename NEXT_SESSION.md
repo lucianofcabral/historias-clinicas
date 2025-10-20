@@ -52,7 +52,29 @@ O más directo:
 6. **Indicadores visuales** - Badges de cantidad + Spinners de progreso (v1.2.0)
 
 ### Próximo Paso Recomendado 🎯
-**Testing End-to-End** - Ver TODO.md sección "Prioridad Alta"
+**⭐ Migración a PostgreSQL** - Base de datos para producción
+
+#### Opciones de Implementación:
+1. **PostgreSQL en Docker** (Recomendado para desarrollo)
+   - Fácil de configurar y destruir
+   - Aislamiento completo
+   - Compatible con producción
+   
+2. **PostgreSQL Local** (Alternativa)
+   - Instalación nativa en Ubuntu
+   - Más rápido en desarrollo
+   - Requiere configuración manual
+
+#### Tareas para la Migración:
+- [ ] Configurar PostgreSQL (Docker o local)
+- [ ] Actualizar dependencias (psycopg2-binary)
+- [ ] Modificar DATABASE_URL en config.py
+- [ ] Crear script de migración de datos
+- [ ] Ejecutar migraciones de Alembic
+- [ ] Testing completo en nuevo DB
+- [ ] Documentar proceso de setup
+
+**Ver archivo**: `POSTGRESQL_MIGRATION.md` (se creará en próxima sesión)
 
 ---
 

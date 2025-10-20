@@ -1,7 +1,24 @@
 # 📝 TODO - Sistema de Historia Clínica
 
-## ✅ Completadas (v1.1.0 - Arquitectura Multi-Archivo)
+## ✅ Completadas
 
+### v1.2.0 - Visual Indicators (20 Oct 2025)
+- [x] **Badges de cantidad de archivos**
+  - Badges en lista de estudios mostrando cantidad de archivos adjuntos
+  - Badges en lista de consultas mostrando cantidad de archivos adjuntos
+  - Solo visible cuando hay archivos (N > 0)
+  
+- [x] **Indicadores de progreso en uploads**
+  - Spinner animado durante operaciones de carga
+  - Texto dinámico "Subiendo archivo X de Y..."
+  - Botones deshabilitados durante uploads
+  - Implementado en: Estudios, Consultas, Archivos de Pacientes
+  
+- [x] **Documentación de indicadores visuales**
+  - Creado VISUAL_INDICATORS.md con guía completa
+  - Actualizado SESSION_SUMMARY.md y NEXT_SESSION.md
+
+### v1.1.0 - Arquitectura Multi-Archivo (19 Oct 2025)
 - [x] **Múltiples archivos en estudios médicos**
   - Soporte para hasta 10 archivos por estudio
   - Upload, preview, eliminación implementados
@@ -28,6 +45,43 @@
 ---
 
 ## 🔴 Prioridad Alta
+
+### ⭐ Migración a PostgreSQL (Próxima Sesión)
+- [ ] **Setup de PostgreSQL**
+  - [ ] Decidir: Docker (recomendado) o Local
+  - [ ] Configurar PostgreSQL según opción elegida
+  - [ ] Crear base de datos y usuario
+  - [ ] Probar conexión manual
+  
+- [ ] **Configuración del proyecto**
+  - [ ] Instalar `psycopg2-binary`
+  - [ ] Actualizar `app/config.py` con soporte multi-DB
+  - [ ] Crear `.env` para variables de entorno
+  - [ ] Actualizar `app/database.py` con pool de conexiones
+  
+- [ ] **Migración de datos**
+  - [ ] Backup completo de SQLite actual
+  - [ ] Ejecutar migraciones Alembic en PostgreSQL
+  - [ ] Crear script de migración de datos
+  - [ ] Migrar datos de SQLite → PostgreSQL
+  - [ ] Verificar integridad de datos
+  
+- [ ] **Testing completo**
+  - [ ] Probar todos los módulos (CRUD completo)
+  - [ ] Verificar upload/download de archivos
+  - [ ] Probar reportes y backups
+  - [ ] Benchmarking de performance
+  
+- [ ] **Documentación**
+  - [ ] Actualizar README.md con instrucciones PostgreSQL
+  - [ ] Documentar proceso de setup (Docker/Local)
+  - [ ] Crear troubleshooting guide
+
+**Ver**: `POSTGRESQL_SETUP_GUIDE.md` para guía completa
+
+---
+
+## 🟡 Prioridad Media
 
 ### Testing End-to-End
 - [ ] Crear paciente de prueba completo
