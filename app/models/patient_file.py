@@ -35,7 +35,7 @@ class PatientFile(SQLModel, table=True):
     file_category: str = Field(default=FileCategory.DOCUMENT.value, index=True)
 
     # Información del archivo
-    file_path: str = Field(index=True)  # Ruta relativa desde STUDIES_PATH
+    file_path: str = Field(index=True)  # Ruta relativa desde PATIENTS_PATH
     file_name: str  # Nombre original del archivo
     file_type: str  # Tipo MIME (application/pdf, image/jpeg, etc.)
     file_size: int  # Tamaño en bytes
@@ -50,9 +50,9 @@ class PatientFile(SQLModel, table=True):
     @property
     def file_path_absolute(self) -> Path:
         """Retorna la ruta absoluta del archivo"""
-        from app.config import STUDIES_PATH
+        from app.config import PATIENTS_PATH
 
-        return STUDIES_PATH / self.file_path
+        return PATIENTS_PATH / self.file_path
 
     @property
     def file_size_kb(self) -> float:

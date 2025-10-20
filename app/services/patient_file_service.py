@@ -7,7 +7,7 @@ from typing import Optional
 
 from sqlmodel import Session, select
 
-from app.config import STUDIES_PATH
+from app.config import PATIENTS_PATH
 from app.models.patient_file import FileCategory, PatientFile
 
 
@@ -57,7 +57,7 @@ class PatientFileService:
         unique_filename = f"patient_{patient_id}_{timestamp}_{safe_filename}"
 
         # Crear directorio del paciente si no existe
-        patient_dir = STUDIES_PATH / f"patient_{patient_id}"
+        patient_dir = PATIENTS_PATH / f"patient_{patient_id}"
         patient_dir.mkdir(parents=True, exist_ok=True)
 
         # Ruta completa del archivo

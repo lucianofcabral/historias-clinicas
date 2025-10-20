@@ -12,6 +12,7 @@ load_dotenv()
 BASE_DIR = Path(__file__).resolve().parent.parent
 BACKUP_PATH = BASE_DIR / "backups"
 STUDIES_PATH = BASE_DIR / "studies"  # Archivos de estudios médicos
+PATIENTS_PATH = BASE_DIR / "patients"  # Archivos directos de pacientes
 
 # Base de Datos
 DATABASE_URL = os.getenv(
