@@ -188,12 +188,29 @@ hc/
 
 - Ver `INSTRUCTIONS.md` para documentación detallada del desarrollo
 - Ver `POSTGRESQL_SETUP_GUIDE.md` para configuración de PostgreSQL con Docker
-- Ver `RENDER_DEPLOYMENT_GUIDE.md` para desplegar en Render.com (GRATIS, sin tarjeta)
+- Ver `PYTHONANYWHERE_DEPLOYMENT_GUIDE.md` para desplegar en PythonAnywhere (GRATIS PERMANENTE, sin tarjeta) ⭐
+- Ver `RENDER_DEPLOYMENT_GUIDE.md` para desplegar en Render.com (GRATIS, sin tarjeta, expira 90 días)
 - Ver `FLY_DEPLOYMENT_GUIDE.md` para desplegar en Fly.io (requiere tarjeta)
 
 ## 🚀 Despliegue en Producción
 
-### Opción 1: Render.com (RECOMENDADA - Sin Tarjeta) ⭐
+### Opción 1: PythonAnywhere (RECOMENDADA - Gratis Permanente) ⭐
+
+**✅ La mejor opción para consultorio con poco tráfico**
+
+- ✅ Gratis permanentemente sin tarjeta de crédito
+- ✅ MySQL incluido (512MB) - suficiente
+- ✅ App siempre activa (no duerme)
+- ✅ Sin renovaciones cada 90 días
+- ✅ Muy estable
+
+Ver la guía completa en [`PYTHONANYWHERE_DEPLOYMENT_GUIDE.md`](PYTHONANYWHERE_DEPLOYMENT_GUIDE.md)
+
+**Tu app estará en:** `https://tu-usuario.pythonanywhere.com`
+
+---
+
+### Opción 2: Render.com (Gratis, expira 90 días)
 
 **✅ Completamente gratis sin tarjeta de crédito**
 
