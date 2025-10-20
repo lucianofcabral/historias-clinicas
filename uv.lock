@@ -546,7 +546,6 @@ dependencies = [
     { name = "argon2-cffi" },
     { name = "email-validator" },
     { name = "fastapi" },
-    { name = "mysqlclient" },
     { name = "openpyxl" },
     { name = "passlib", extra = ["bcrypt"] },
     { name = "psycopg2-binary" },
@@ -561,6 +560,9 @@ dev = [
     { name = "pytest" },
     { name = "pytest-asyncio" },
     { name = "ruff" },
+]
+mysql = [
+    { name = "mysqlclient" },
 ]
 pdf = [
     { name = "reportlab" },
@@ -577,7 +579,7 @@ requires-dist = [
     { name = "argon2-cffi", specifier = ">=25.1.0" },
     { name = "email-validator", specifier = ">=2.1.0" },
     { name = "fastapi", specifier = ">=0.119.0" },
-    { name = "mysqlclient", specifier = ">=2.2.0" },
+    { name = "mysqlclient", marker = "extra == 'mysql'", specifier = ">=2.2.0" },
     { name = "openpyxl", specifier = ">=3.1.5" },
     { name = "passlib", extras = ["bcrypt"], specifier = ">=1.7.4" },
     { name = "psycopg2-binary", specifier = ">=2.9.9" },
@@ -590,7 +592,7 @@ requires-dist = [
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.1.0" },
     { name = "sqlmodel", specifier = ">=0.0.14" },
 ]
-provides-extras = ["dev", "pdf"]
+provides-extras = ["dev", "pdf", "mysql"]
 
 [package.metadata.requires-dev]
 dev = [{ name = "ruff", specifier = ">=0.14.1" }]

@@ -8,7 +8,6 @@ dependencies = [
     "reflex>=0.4.0",
     "sqlmodel>=0.0.14",
     "psycopg2-binary>=2.9.9",
-    "mysqlclient>=2.2.0",
     "alembic>=1.13.0",
     "passlib[bcrypt]>=1.7.4",
     "python-dotenv>=1.0.0",
@@ -27,6 +26,9 @@ dev = [
 ]
 pdf = [
     "reportlab>=4.0.0",
+]
+mysql = [
+    "mysqlclient>=2.2.0",
 ]
 
 [build-system]
