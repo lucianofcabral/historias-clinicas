@@ -1,6 +1,5 @@
 .states
 assets/external/
-.web
 # Python
 __pycache__/
 *.py[cod]
@@ -55,8 +54,10 @@ backups/*.zip
 backups/*.db
 !backups/.gitkeep
 
-# Reflex
-.web/
+# Reflex (ignorar todo excepto el build de producción)
+.web/*
+!.web/build/
+!.web/public/
 assets/uploaded_files/
 
 # IDEs

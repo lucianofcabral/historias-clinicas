@@ -1,0 +1,1 @@
+import"./react-D-S4PNWu.js";import{t as e}from"./createLucideIcon-Bc7lyNOf.js";var t=[[`path`,{d:`m15 18-6-6 6-6`,key:`1wnfg3`}]],n=e(`chevron-left`,t);export{t as __iconNode,n as default};

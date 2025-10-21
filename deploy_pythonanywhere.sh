@@ -20,9 +20,8 @@ uv pip install -r pyproject.toml
 echo "🗄️ Ejecutando migraciones..."
 python migrate.py
 
-# 5. Compilar assets de Reflex (si es necesario)
-echo "🎨 Compilando assets..."
-reflex export --no-zip
+# 5. Los assets deben ser compilados localmente y subidos via Git
+echo "ℹ️ Assets compilados localmente (carpeta .web/)"
 
 # 6. Recargar la aplicación web
 echo "♻️ Recargando aplicación..."

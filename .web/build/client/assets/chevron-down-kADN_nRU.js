@@ -1,0 +1,1 @@
+import"./react-D-S4PNWu.js";import{t as e}from"./createLucideIcon-Bc7lyNOf.js";var t=[[`path`,{d:`m6 9 6 6 6-6`,key:`qrunsl`}]],n=e(`chevron-down`,t);export{t as __iconNode,n as default};

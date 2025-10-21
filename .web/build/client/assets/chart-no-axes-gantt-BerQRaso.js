@@ -1,0 +1,1 @@
+import"./react-D-S4PNWu.js";import{t as e}from"./createLucideIcon-Bc7lyNOf.js";var t=[[`path`,{d:`M6 5h12`,key:`fvfigv`}],[`path`,{d:`M4 12h10`,key:`oujl3d`}],[`path`,{d:`M12 19h8`,key:`baeox8`}]],n=e(`chart-no-axes-gantt`,t);export{t as __iconNode,n as default};
