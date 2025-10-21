@@ -2,6 +2,7 @@
 
 import os
 from pathlib import Path
+from urllib.parse import quote_plus
 
 from dotenv import load_dotenv
 
@@ -15,10 +16,32 @@ STUDIES_PATH = BASE_DIR / "studies"  # Archivos de estudios médicos
 PATIENTS_PATH = BASE_DIR / "patients"  # Archivos directos de pacientes
 
 # Base de Datos
-DATABASE_URL = os.getenv(
-    "DATABASE_URL",
-    "postgresql://user:password@localhost:5432/medical_records_db",
-)
+# Si DATABASE_URL está definida, la usamos directamente
+# Si no, construimos la URL desde las partes individuales
+DATABASE_URL = os.getenv("DATABASE_URL")
+
+if not DATABASE_URL:
+    # Construir URL desde componentes individuales
+    db_type = os.getenv("DATABASE_TYPE", "postgresql")
+    db_user = os.getenv("DB_USER", "user")
+    db_password = os.getenv("DB_PASSWORD", "password")
+    db_host = os.getenv("DB_HOST", "localhost")
+    db_port = os.getenv("DB_PORT", "5432")
+    db_name = os.getenv("DB_NAME", "medical_records_db")
+    
+    # Si el nombre de la base de datos contiene caracteres especiales como $,
+    # los encodamos correctamente
+    db_name_encoded = quote_plus(db_name)
+    
+    # Construir la URL según el tipo de base de datos
+    if db_type == "mysql":
+        DATABASE_URL = f"mysql+pymysql://{db_user}:{db_password}@{db_host}:{db_port}/{db_name_encoded}"
+    elif db_type == "postgresql":
+        DATABASE_URL = f"postgresql://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}"
+    elif db_type == "sqlite":
+        DATABASE_URL = f"sqlite:///./{db_name}.db"
+    else:
+        DATABASE_URL = f"postgresql://user:password@localhost:5432/medical_records_db"
 
 # Autenticación
 ADMIN_PASSWORD_HASH = os.getenv(
