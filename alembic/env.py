@@ -29,8 +29,11 @@ target_metadata = SQLModel.metadata
 # Override sqlalchemy.url from .env
 # La URL ya está construida correctamente en app.config con encoding apropiado
 if DATABASE_URL:
-    # Escapar % como %% para ConfigParser
-    DATABASE_URL_ESCAPED = DATABASE_URL.replace('%', '%%')
+    # Escapar % como %% para ConfigParser (solo si existe %)
+    if '%' in DATABASE_URL:
+        DATABASE_URL_ESCAPED = DATABASE_URL.replace('%', '%%')
+    else:
+        DATABASE_URL_ESCAPED = DATABASE_URL
     config.set_main_option("sqlalchemy.url", DATABASE_URL_ESCAPED)
 
 

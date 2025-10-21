@@ -20,10 +20,13 @@ alembic_cfg.set_main_option("script_location", str(BASE_DIR / "alembic"))
 if not DATABASE_URL:
     raise ValueError("DATABASE_URL no pudo ser construida")
 
-# Escapar % como %% para ConfigParser
-database_url_escaped = DATABASE_URL.replace('%', '%%')
+# Escapar % como %% para ConfigParser (solo si existe %)
+if '%' in DATABASE_URL:
+    database_url_escaped = DATABASE_URL.replace('%', '%%')
+else:
+    database_url_escaped = DATABASE_URL
 
-# Establecer la URL directamente (escapada para ConfigParser)
+# Establecer la URL directamente (escapada para ConfigParser si es necesario)
 alembic_cfg.set_main_option("sqlalchemy.url", database_url_escaped)
 
 print("🔍 Conectando a la base de datos...")
