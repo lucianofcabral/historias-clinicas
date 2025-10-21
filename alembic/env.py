@@ -27,7 +27,10 @@ target_metadata = SQLModel.metadata
 # ... etc.
 
 # Override sqlalchemy.url from .env
-config.set_main_option("sqlalchemy.url", DATABASE_URL)
+# Escapar el % como %% para ConfigParser
+DATABASE_URL_ESCAPED = DATABASE_URL.replace('%', '%%') if DATABASE_URL else None
+if DATABASE_URL_ESCAPED:
+    config.set_main_option("sqlalchemy.url", DATABASE_URL_ESCAPED)
 
 
 def run_migrations_offline() -> None:
