@@ -25,8 +25,17 @@ database_url = os.getenv("DATABASE_URL")
 if not database_url:
     raise ValueError("DATABASE_URL no está definida en el archivo .env")
 
-# Escapar % como %% para ConfigParser
-database_url_escaped = database_url.replace('%', '%%')
+# Si la URL contiene $ (común en bases de datos de PythonAnywhere),
+# lo convertimos al encoding URL correcto (%24)
+# y luego escapamos el % para ConfigParser (%%)
+if '$' in database_url:
+    # Primero convertir $ a %24 (URL encoding)
+    database_url_encoded = database_url.replace('$', '%24')
+    # Luego escapar % como %% para ConfigParser
+    database_url_escaped = database_url_encoded.replace('%', '%%')
+else:
+    # Si no hay $, solo escapar % si existe
+    database_url_escaped = database_url.replace('%', '%%')
 
 # Establecer la URL directamente (escapada para ConfigParser)
 alembic_cfg.set_main_option("sqlalchemy.url", database_url_escaped)

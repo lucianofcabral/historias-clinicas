@@ -27,9 +27,18 @@ target_metadata = SQLModel.metadata
 # ... etc.
 
 # Override sqlalchemy.url from .env
-# Escapar % como %% para ConfigParser
+# Si la URL contiene $ (común en bases de datos de PythonAnywhere),
+# lo convertimos al encoding URL correcto y escapamos para ConfigParser
 if DATABASE_URL:
-    DATABASE_URL_ESCAPED = DATABASE_URL.replace('%', '%%')
+    if '$' in DATABASE_URL:
+        # Primero convertir $ a %24 (URL encoding)
+        DATABASE_URL_ENCODED = DATABASE_URL.replace('$', '%24')
+        # Luego escapar % como %% para ConfigParser
+        DATABASE_URL_ESCAPED = DATABASE_URL_ENCODED.replace('%', '%%')
+    else:
+        # Si no hay $, solo escapar % si existe
+        DATABASE_URL_ESCAPED = DATABASE_URL.replace('%', '%%')
+    
     config.set_main_option("sqlalchemy.url", DATABASE_URL_ESCAPED)
 
 
