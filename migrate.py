@@ -25,8 +25,11 @@ database_url = os.getenv("DATABASE_URL")
 if not database_url:
     raise ValueError("DATABASE_URL no está definida en el archivo .env")
 
-# Establecer la URL directamente (sin pasar por ConfigParser)
-alembic_cfg.set_main_option("sqlalchemy.url", database_url)
+# Escapar % como %% para ConfigParser
+database_url_escaped = database_url.replace('%', '%%')
+
+# Establecer la URL directamente (escapada para ConfigParser)
+alembic_cfg.set_main_option("sqlalchemy.url", database_url_escaped)
 
 print("🔍 Conectando a la base de datos...")
 print("📦 Ejecutando migraciones...")
