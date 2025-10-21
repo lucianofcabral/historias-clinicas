@@ -29,19 +29,20 @@ if not DATABASE_URL:
     db_port = os.getenv("DB_PORT", "5432")
     db_name = os.getenv("DB_NAME", "medical_records_db")
     
-    # Si el nombre de la base de datos contiene caracteres especiales como $,
-    # los encodamos correctamente
-    db_name_encoded = quote_plus(db_name)
+    # Encodear la contraseña si tiene caracteres especiales
+    db_password_encoded = quote_plus(db_password)
     
     # Construir la URL según el tipo de base de datos
     if db_type == "mysql":
-        DATABASE_URL = f"mysql+pymysql://{db_user}:{db_password}@{db_host}:{db_port}/{db_name_encoded}"
+        # Para MySQL, el nombre de la base de datos NO se debe encodear
+        # PyMySQL lo maneja directamente
+        DATABASE_URL = f"mysql+pymysql://{db_user}:{db_password_encoded}@{db_host}:{db_port}/{db_name}"
     elif db_type == "postgresql":
         DATABASE_URL = f"postgresql://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}"
     elif db_type == "sqlite":
         DATABASE_URL = f"sqlite:///./{db_name}.db"
     else:
-        DATABASE_URL = f"postgresql://user:password@localhost:5432/medical_records_db"
+        DATABASE_URL = "postgresql://user:password@localhost:5432/medical_records_db"
 
 # Autenticación
 ADMIN_PASSWORD_HASH = os.getenv(
